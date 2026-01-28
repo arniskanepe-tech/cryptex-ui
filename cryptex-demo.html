@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cryptex demo</title>
+  <link rel="stylesheet" href="assets/cryptex.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 18px; }
+    .panel { display: grid; gap: 10px; max-width: 720px; }
+    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+    label { font-size: 13px; opacity: .8; }
+    input { padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,.18); }
+    button { padding: 10px 12px; border-radius: 10px; border: 0; background: #111; color: #fff; font-weight: 700; }
+    button.secondary { background: #444; }
+    .hint { font-size: 13px; opacity: .7; }
+    #mount { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h2>Cryptex (standalone) – sequential unlock, final check only</h2>
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label>Riņķu skaits</label>
+        <input id="ringsCount" type="number" value="6" min="1" max="30" />
+      </div>
+      <div>
+        <label>Solution (garums = riņķu skaits)</label>
+        <input id="solution" type="text" value="A1B2C3" />
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="rebuild">Pārbūvēt komponenti</button>
+      <button id="levelDone" class="secondary">Simulēt: līmenis pabeigts (+1 riņķis)</button>
+    </div>
+
+    <div class="hint">
+      Līdz beigām NAV pārbaudes. Tikai kad atbloķēti visi riņķi, kļūst aktīva poga “Pārbaudīt”.
+    </div>
+  </div>
+
+  <div id="mount"></div>
+
+  <script src="assets/cryptex.js"></script>
+  <script>
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let cryptex = null;
+
+    function build() {
+      const mount = document.getElementById("mount");
+      mount.innerHTML = `<div id="cryptex"></div>`;
+      const ringsCount = Number(document.getElementById("ringsCount").value) || 6;
+      const solution = String(document.getElementById("solution").value || "").trim();
+
+      cryptex = new Cryptex(document.getElementById("cryptex"), {
+        ringsCount,
+        alphabet,
+        solution,
+        requireFinalCheckButton: true,
+        onProgress: (p, total) => console.log("progress", p, "/", total),
+        onUnlock: (code) => alert("ATVĒRĀS ✅\n" + code),
+        onFail: (code) => alert("SABIRA PELNOS ❌\n" + code),
+      });
+
+      // start: first ring unlocked? (ja gribi, lai jau no 1. līmeņa var uzreiz likt 1 simbolu, atstāj 0)
+      cryptex.setProgress(0);
+    }
+
+    document.getElementById("rebuild").addEventListener("click", build);
+    document.getElementById("levelDone").addEventListener("click", () => {
+      if (!cryptex) return;
+      cryptex.unlockNextRing();
+    });
+
+    build();
+  </script>
+</body>
+</html>
