@@ -1,0 +1,146 @@
+/* assets/cryptex.css */
+.cryptex {
+  display: inline-block;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.cryptex-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cryptex-cap {
+  width: 54px;
+  height: 84px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #5c4b2f, #b99b61, #5c4b2f);
+  position: relative;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+}
+
+.cryptex-cap .marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: rgba(0,0,0,.25);
+  border: 2px solid rgba(255,255,255,.35);
+  border-radius: 4px;
+}
+
+.cryptex-body {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #3a2f1e, #7b633b, #3a2f1e);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.25);
+}
+
+.cryptex-ring {
+  width: 44px;
+  height: 84px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #d6c090, #b99352, #d6c090);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
+  cursor: grab;
+}
+
+.cryptex-ring.dragging { cursor: grabbing; }
+
+.cryptex-window {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  right: 6px;
+  height: 28px;
+  transform: translateY(-50%);
+  border-radius: 10px;
+  background: rgba(0,0,0,.18);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.18);
+  pointer-events: none;
+}
+
+.cryptex-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(0);
+  transition: transform 120ms ease;
+}
+
+.cryptex-ring.dragging .cryptex-track { transition: none; }
+
+.cryptex-letter {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: rgba(20, 14, 6, .9);
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.cryptex-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cryptex-ring.locked {
+  filter: grayscale(0.9) brightness(0.85);
+  cursor: not-allowed;
+}
+
+.cryptex-ring.locked .cryptex-lock-overlay {
+  opacity: 1;
+}
+
+.cryptex-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.cryptex-check {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 0;
+  background: #1f1f1f;
+  color: #fff;
+  font-weight: 700;
+}
+
+.cryptex-check:disabled {
+  opacity: .4;
+}
+
+.cryptex-status {
+  margin-top: 8px;
+  font-size: 14px;
+  opacity: .85;
+}
+
+/* End states */
+.cryptex.unlocked .cryptex-body,
+.cryptex.unlocked .cryptex-cap {
+  filter: brightness(1.08);
+}
+
+.cryptex.failed .cryptex-body,
+.cryptex.failed .cryptex-cap {
+  filter: contrast(1.05) saturate(0.85);
+}
