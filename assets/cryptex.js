@@ -1,6 +1,6 @@
 // assets/cryptex.js
-// Cryptex UI component (DOM-based)
-// Sequential unlock + final check only (no intermediate correctness feedback)
+// Cryptex UI component (TRUE 3D rings)
+// Sequential unlock + final check only
 
 (function () {
   class Cryptex {
@@ -18,6 +18,9 @@
         onFail: typeof opts.onFail === "function" ? opts.onFail : null,
         onProgress: typeof opts.onProgress === "function" ? opts.onProgress : null,
       };
+
+      this.n = this.opts.alphabet.length;      // faces per ring
+      this.stepDeg = 360 / this.n;
 
       this.state = {
         indices: Array(this.opts.ringsCount).fill(0),
@@ -67,13 +70,33 @@
 
     _ringHtml(i) {
       const letters = this.opts.alphabet.split("");
+
+      // build faces around cylinder
+      const faces = letters
+        .map((ch, idx) => {
+          // rotateY by idx*step, push outward by radius
+          // radius comes from CSS var (--radius)
+          const a = idx * this.stepDeg;
+          return `
+            <div class="cryptex-face" style="transform: rotateY(${a}deg) translateZ(var(--radius));">
+              <span>${ch}</span>
+            </div>
+          `;
+        })
+        .join("");
+
       return `
         <div class="cryptex-ring" data-ring="${i}" role="group" aria-label="Ring ${i + 1}">
+          <div class="cryptex-cylinder"></div>
           <div class="cryptex-window"></div>
-          <div class="cryptex-track">
-            ${letters.map((ch) => `<div class="cryptex-letter">${ch}</div>`).join("")}
-          </div>
+          <div class="cryptex-shade"></div>
+          <div class="cryptex-highlight"></div>
           <div class="cryptex-lock-overlay" aria-hidden="true"></div>
+
+          <!-- faces -->
+          <div class="cryptex-cylinder" data-cylinder="${i}">
+            ${faces}
+          </div>
         </div>
       `;
     }
@@ -81,6 +104,7 @@
     _bind() {
       this.ringEls.forEach((ringEl) => {
         const ringIndex = Number(ringEl.dataset.ring);
+        const cylinder = ringEl.querySelector(`[data-cylinder="${ringIndex}"]`);
 
         let startY = 0;
         let startIdx = 0;
@@ -88,15 +112,14 @@
 
         const onDown = (e) => {
           if (!this._isRingUnlocked(ringIndex)) return;
-
           e.preventDefault();
+
           dragging = true;
           ringEl.setPointerCapture?.(e.pointerId);
           startY = e.clientY;
           startIdx = this.state.indices[ringIndex];
-          ringEl.classList.add("dragging");
 
-          // 3D tilt start
+          ringEl.classList.add("dragging");
           ringEl.style.setProperty("--tilt", "10deg");
         };
 
@@ -104,17 +127,15 @@
           if (!dragging) return;
           const dy = e.clientY - startY;
 
-          // 3D tilt update
-          const tilt = Math.max(-14, Math.min(14, -dy / 14));
+          const tilt = Math.max(-16, Math.min(16, -dy / 14));
           ringEl.style.setProperty("--tilt", `${tilt}deg`);
 
-          const stepPx = this._letterHeight(ringEl);
-          if (!stepPx) return;
-
+          // convert drag to steps: ~22px per step feels ok
+          const stepPx = 22;
           const deltaSteps = Math.round(dy / stepPx);
+
           const newIdx = this._wrapIndex(startIdx - deltaSteps);
           this.state.indices[ringIndex] = newIdx;
-
           this._renderRing(ringIndex);
         };
 
@@ -122,8 +143,6 @@
           if (!dragging) return;
           dragging = false;
           ringEl.classList.remove("dragging");
-
-          // 3D tilt end
           ringEl.style.setProperty("--tilt", "0deg");
         };
 
@@ -149,14 +168,8 @@
       }
     }
 
-    _letterHeight(ringEl) {
-      const letter = ringEl.querySelector(".cryptex-letter");
-      if (!letter) return 0;
-      return letter.getBoundingClientRect().height;
-    }
-
     _wrapIndex(idx) {
-      const n = this.opts.alphabet.length;
+      const n = this.n;
       return ((idx % n) + n) % n;
     }
 
@@ -170,12 +183,11 @@
 
     _renderRing(i) {
       const ringEl = this.ringEls[i];
-      const track = ringEl.querySelector(".cryptex-track");
-      const h = this._letterHeight(ringEl);
-      if (!h) return;
-
       const idx = this.state.indices[i];
-      track.style.transform = `translateY(${-idx * h}px)`;
+
+      // To show character idx in the window (front), rotate cylinder opposite direction:
+      const spin = -(idx * this.stepDeg);
+      ringEl.style.setProperty("--spin", `${spin}deg`);
     }
 
     _updateLocks() {
