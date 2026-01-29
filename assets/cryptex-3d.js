@@ -2,7 +2,6 @@
   const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const STEP = (Math.PI * 2) / ALPHABET.length;
 
-  // UI
   const ringsCountEl = document.getElementById("ringsCount");
   const solutionEl = document.getElementById("solution");
   const rebuildBtn = document.getElementById("rebuild");
@@ -18,11 +17,12 @@
     return s;
   }
 
-  // Renderer / Scene
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
+  // IMPORTANT for Safari/touch: make sure the canvas receives pointer events and doesn't scroll page
+  renderer.domElement.style.touchAction = "none";
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -30,7 +30,6 @@
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200);
 
-  // Lights
   scene.add(new THREE.HemisphereLight(0xffffff, 0x3a2b18, 0.85));
 
   const key = new THREE.DirectionalLight(0xffffff, 1.15);
@@ -43,17 +42,14 @@
   fill.position.set(-10, 6, -8);
   scene.add(fill);
 
-  // Ground shadow
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(200, 200),
     new THREE.ShadowMaterial({ opacity: 0.18 })
   );
   ground.rotation.x = -Math.PI/2;
-  ground.position.y = -2.1;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Letter texture
   function makeLetterTexture(){
     const canvas = document.createElement("canvas");
     const W = 2048, H = 256;
@@ -67,7 +63,6 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,W,H);
 
-    // separators
     ctx.globalAlpha = 0.30;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
@@ -105,53 +100,34 @@
 
   const letterTex = makeLetterTexture();
 
-  // Materials
-  const metalMat = new THREE.MeshStandardMaterial({
-    color: 0x2a1f14,
-    metalness: 0.9,
-    roughness: 0.35
-  });
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, metalness: 0.9, roughness: 0.35 });
+  const capMat   = new THREE.MeshStandardMaterial({ color: 0xd6b56b, metalness: 0.98, roughness: 0.22 });
+  const ringMat  = new THREE.MeshStandardMaterial({ map: letterTex, metalness: 0.55, roughness: 0.35 });
 
-  const capMat = new THREE.MeshStandardMaterial({
-    color: 0xd6b56b,
-    metalness: 0.98,
-    roughness: 0.22
-  });
-
-  const ringMat = new THREE.MeshStandardMaterial({
-    map: letterTex,
-    metalness: 0.55,
-    roughness: 0.35
-  });
-
-  // State
   let cryptexGroup = null;
   let rings = [];
   let ringsCount = 8;
   let progress = 0;
 
-  // For whole-object orbit (Shift+drag)
+  // Camera orbit + zoom
   let orbiting = false;
-  let orbitStart = {x:0,y:0, ry:0, rx:0};
-
-  function codeFromRings(){
-    return rings.map(r => ALPHABET[r.userData.index]).join("");
-  }
+  let orbitStart = { x:0, y:0, ry:0, rx:0 };
+  const zoom = { dist: 10 };
 
   function updateStatus(){
     statusEl.textContent = `Ievadi kodu: ${progress}/${ringsCount}`;
     checkBtn.disabled = progress < ringsCount;
   }
-
   function setProgress(n){
     progress = Math.max(0, Math.min(ringsCount, n|0));
     updateStatus();
   }
-
+  function codeFromRings(){
+    return rings.map(r => ALPHABET[r.userData.index]).join("");
+  }
   function applyRingIndex(ring, idx){
     idx = ((idx % ALPHABET.length) + ALPHABET.length) % ALPHABET.length;
     ring.userData.index = idx;
-    // rotate around local X; ring is aligned along X (we rotate Z to align), so use rotation.x
     ring.rotation.x = -idx * STEP;
   }
 
@@ -162,28 +138,23 @@
     box.getSize(size);
     box.getCenter(center);
 
-    // center object at origin
     obj.position.sub(center);
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     let dist = (maxDim / 2) / Math.tan(fov / 2);
+    dist *= 1.35;
 
-    dist *= 1.35; // padding
-
+    zoom.dist = dist;
     camera.position.set(dist * 0.85, dist * 0.40, dist);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
 
-    // keep ground under object
     ground.position.y = -(size.y/2) - 0.8;
   }
 
-  // Build cryptex 3D
   function buildCryptex(){
-    if (cryptexGroup){
-      scene.remove(cryptexGroup);
-    }
+    if (cryptexGroup) scene.remove(cryptexGroup);
 
     ringsCount = Math.max(1, Math.min(30, Number(ringsCountEl.value)||8));
     ringsCountEl.value = String(ringsCount);
@@ -191,25 +162,18 @@
 
     progress = 0;
     rings = [];
-
     cryptexGroup = new THREE.Group();
 
     const ringRadius = 1.05;
     const ringHeight = 0.55;
     const ringGap = 0.18;
-
     const bodyLen = ringsCount * (ringHeight + ringGap) + 1.3;
 
-    // Main tube
-    const tube = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.45, 1.45, bodyLen, 56, 1, false),
-      metalMat
-    );
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, bodyLen, 56, 1, false), metalMat);
     tube.rotation.z = Math.PI/2;
     tube.castShadow = true;
     cryptexGroup.add(tube);
 
-    // Window plate
     const windowPlate = new THREE.Mesh(
       new THREE.PlaneGeometry(bodyLen*0.86, 0.62),
       new THREE.MeshStandardMaterial({ color: 0x17110a, metalness: 0.2, roughness: 0.9 })
@@ -217,7 +181,6 @@
     windowPlate.position.set(0, 0, ringRadius + 0.50);
     cryptexGroup.add(windowPlate);
 
-    // Caps
     const capGeo = new THREE.CylinderGeometry(1.68, 1.68, 0.85, 56);
     const capL = new THREE.Mesh(capGeo, capMat);
     capL.rotation.z = Math.PI/2;
@@ -231,24 +194,19 @@
     capR.castShadow = true;
     cryptexGroup.add(capR);
 
-    // Rings
     const ringGeo = new THREE.CylinderGeometry(ringRadius, ringRadius, ringHeight, 56, 1, true);
     for (let i=0;i<ringsCount;i++){
       const r = new THREE.Mesh(ringGeo, ringMat);
       r.castShadow = true;
-
       const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
       r.position.set(x, 0, 0);
       r.rotation.z = Math.PI/2;
-
       r.userData.index = 0;
       r.userData.ringIndex = i;
-
       cryptexGroup.add(r);
       rings.push(r);
     }
 
-    // Default product-like pose
     cryptexGroup.rotation.y = -0.35;
     cryptexGroup.rotation.x = -0.10;
 
@@ -257,7 +215,7 @@
     updateStatus();
   }
 
-  // Interaction: raycast pick ring
+  // Raycast
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
@@ -270,7 +228,6 @@
     pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
   }
-
   function pickRing(e){
     setPointerFromEvent(e);
     raycaster.setFromCamera(pointer, camera);
@@ -278,79 +235,86 @@
     return hits.length ? hits[0].object : null;
   }
 
+  // Pointer
   renderer.domElement.addEventListener("pointerdown", (e) => {
-    // Shift+drag = orbit whole object
-    if (e.shiftKey && cryptexGroup){
+    e.preventDefault();
+
+    const r = pickRing(e);
+
+    // If click hits an unlocked ring -> ring drag
+    if (r && r.userData.ringIndex < progress){
+      activeRing = r;
+      dragStartY = e.clientY;
+      dragStartIndex = r.userData.index;
+      renderer.domElement.setPointerCapture?.(e.pointerId);
+      return;
+    }
+
+    // Otherwise orbit whole object (no Shift needed)
+    if (cryptexGroup){
       orbiting = true;
       orbitStart.x = e.clientX;
       orbitStart.y = e.clientY;
       orbitStart.ry = cryptexGroup.rotation.y;
       orbitStart.rx = cryptexGroup.rotation.x;
       renderer.domElement.setPointerCapture?.(e.pointerId);
-      return;
     }
-
-    const r = pickRing(e);
-    if (!r) return;
-    if (r.userData.ringIndex >= progress) return; // locked
-
-    activeRing = r;
-    dragStartY = e.clientY;
-    dragStartIndex = r.userData.index;
-    renderer.domElement.setPointerCapture?.(e.pointerId);
-  });
+  }, { passive:false });
 
   renderer.domElement.addEventListener("pointermove", (e) => {
+    if (activeRing){
+      const dy = e.clientY - dragStartY;
+      const steps = Math.round(dy / 18);
+      applyRingIndex(activeRing, dragStartIndex - steps);
+      return;
+    }
     if (orbiting && cryptexGroup){
       const dx = e.clientX - orbitStart.x;
       const dy = e.clientY - orbitStart.y;
       cryptexGroup.rotation.y = orbitStart.ry + dx * 0.006;
       cryptexGroup.rotation.x = orbitStart.rx + dy * 0.004;
-      return;
     }
-    if (!activeRing) return;
-    const dy = e.clientY - dragStartY;
-    const steps = Math.round(dy / 18);
-    applyRingIndex(activeRing, dragStartIndex - steps);
   });
 
   renderer.domElement.addEventListener("pointerup", () => { activeRing = null; orbiting = false; });
   renderer.domElement.addEventListener("pointercancel", () => { activeRing = null; orbiting = false; });
 
+  // Wheel: if over unlocked ring -> rotate it, else zoom camera
   renderer.domElement.addEventListener("wheel", (e) => {
-    const r = pickRing(e);
-    if (!r) return;
-    if (r.userData.ringIndex >= progress) return;
     e.preventDefault();
-    applyRingIndex(r, r.userData.index + (e.deltaY > 0 ? 1 : -1));
+    const r = pickRing(e);
+    if (r && r.userData.ringIndex < progress){
+      applyRingIndex(r, r.userData.index + (e.deltaY > 0 ? 1 : -1));
+      return;
+    }
+    // zoom
+    zoom.dist *= (e.deltaY > 0 ? 1.06 : 0.94);
+    zoom.dist = Math.max(3.5, Math.min(40, zoom.dist));
+    camera.position.set(zoom.dist * 0.85, zoom.dist * 0.40, zoom.dist);
+    camera.lookAt(0,0,0);
   }, { passive:false });
 
-  // UI wiring
+  // UI
   rebuildBtn.addEventListener("click", buildCryptex);
   levelDoneBtn.addEventListener("click", () => setProgress(progress + 1));
   ringsCountEl.addEventListener("change", () => normalizeSolution(Math.max(1, Math.min(30, Number(ringsCountEl.value)||8))));
-
   checkBtn.addEventListener("click", () => {
     const sol = normalizeSolution(ringsCount);
     const code = codeFromRings();
-    if (code === sol) alert("Atvērts ✅\n" + code);
-    else alert("Nepareizi ❌\n" + code);
+    alert(code === sol ? ("Atvērts ✅\n"+code) : ("Nepareizi ❌\n"+code));
   });
 
-  // Resize
   window.addEventListener("resize", () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
   });
 
-  // Render loop
   function animate(){
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
   }
 
-  // Init
   buildCryptex();
   animate();
 })();
