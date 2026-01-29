@@ -1,16 +1,18 @@
 /* assets/cryptex.css */
-/* 3D-ish Cryptex (CSS pseudo-3D) */
+/* TRUE 3D rings: each ring is a cylinder made of faces around Y-axis */
 
 :root{
-  --metalDark:#2b2114;
-  --metalMid:#7b633b;
-  --metalGold1:#e0c67d;
-  --metalGold2:#b48b45;
-  --metalGold3:#6c532c;
-  --ringFace1:#ead9a5;
-  --ringFace2:#caa35b;
-  --ringFace3:#f2e6bf;
-  --ink:#1b1208;
+  --bg: #ffffff;
+  --metalDark:#241a10;
+  --metalMid:#6f5a36;
+  --gold1:#e6cd87;
+  --gold2:#b58b43;
+  --gold3:#6a512a;
+  --ink:#1a1208;
+
+  /* 3D tuning */
+  --persp: 1100px;
+  --bodyTilt: 12deg;
 }
 
 .cryptex{
@@ -21,41 +23,41 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-/* Perspective wrapper */
 .cryptex-shell{
   display:flex;
   align-items:center;
-  gap:12px;
-  perspective: 900px;
+  gap:14px;
+  perspective: var(--persp);
   perspective-origin: 50% 50%;
 }
 
-/* End caps */
+/* ===== Caps ===== */
 .cryptex-cap{
-  width: 64px;
-  height: 96px;
-  border-radius: 18px;
+  width: 74px;
+  height: 112px;
+  border-radius: 22px;
   position: relative;
-  transform: translateZ(0) rotateX(8deg);
+  transform-style: preserve-3d;
+  transform: rotateX(var(--bodyTilt));
   background:
-    radial-gradient(60% 60% at 30% 25%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, var(--metalGold3), var(--metalGold1), var(--metalGold2), var(--metalGold3));
+    radial-gradient(60% 60% at 30% 20%, rgba(255,255,255,.50), rgba(255,255,255,0) 62%),
+    linear-gradient(180deg, var(--gold3), var(--gold1), var(--gold2), var(--gold3));
   box-shadow:
-    0 16px 28px rgba(0,0,0,.32),
-    inset 0 0 0 2px rgba(255,255,255,.12),
-    inset 0 -12px 18px rgba(0,0,0,.25);
+    0 22px 34px rgba(0,0,0,.28),
+    inset 0 0 0 2px rgba(255,255,255,.14),
+    inset 0 -16px 22px rgba(0,0,0,.26);
 }
 
 .cryptex-cap:before{
   content:"";
   position:absolute;
-  inset:10px;
-  border-radius: 14px;
+  inset: 10px;
+  border-radius: 18px;
   background:
-    radial-gradient(80% 70% at 30% 30%, rgba(255,255,255,.20), rgba(255,255,255,0) 55%),
-    linear-gradient(180deg, rgba(0,0,0,.20), rgba(255,255,255,.06), rgba(0,0,0,.25));
+    radial-gradient(70% 70% at 30% 25%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, rgba(0,0,0,.20), rgba(255,255,255,.06), rgba(0,0,0,.24));
   box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
-  opacity:.85;
+  opacity:.88;
 }
 
 .cryptex-cap .marker{
@@ -68,150 +70,164 @@
   border-radius: 5px;
   background: rgba(0,0,0,.22);
   border: 2px solid rgba(255,255,255,.30);
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,.10);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.12);
 }
 
-/* Main body */
+/* ===== Body ===== */
 .cryptex-body{
   display:flex;
-  gap:10px;
-  padding: 14px 16px;
-  border-radius: 22px;
+  gap:12px;
+  padding: 16px 18px;
+  border-radius: 26px;
   transform-style: preserve-3d;
-  transform: rotateX(8deg);
+  transform: rotateX(var(--bodyTilt));
   background:
     radial-gradient(90% 90% at 20% 15%, rgba(255,255,255,.14), rgba(255,255,255,0) 60%),
     linear-gradient(180deg, var(--metalDark), var(--metalMid), var(--metalDark));
   box-shadow:
-    0 18px 34px rgba(0,0,0,.32),
+    0 24px 38px rgba(0,0,0,.30),
     inset 0 0 0 2px rgba(255,255,255,.10),
-    inset 0 -16px 22px rgba(0,0,0,.30);
+    inset 0 -18px 24px rgba(0,0,0,.30);
   position: relative;
 }
 
-/* Decorative engravings */
+/* faint engraved stripes */
 .cryptex-body:before{
   content:"";
   position:absolute;
-  inset:10px;
-  border-radius: 18px;
+  inset: 12px;
+  border-radius: 22px;
   pointer-events:none;
   background:
-    radial-gradient(100% 60% at 50% 0%, rgba(255,255,255,.08), rgba(255,255,255,0) 60%),
-    repeating-linear-gradient(90deg,
-      rgba(255,255,255,.04),
-      rgba(255,255,255,.04) 6px,
-      rgba(0,0,0,.02) 6px,
-      rgba(0,0,0,.02) 12px
-    );
+    radial-gradient(100% 70% at 50% 0%, rgba(255,255,255,.09), rgba(255,255,255,0) 65%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.04) 7px, rgba(0,0,0,.02) 7px, rgba(0,0,0,.02) 14px);
   opacity:.35;
   mix-blend-mode: overlay;
 }
 
-/* Rings (cylinders) */
+/* ===== Ring wrapper ===== */
 .cryptex-ring{
-  --tilt: 0deg; /* set by JS while dragging */
-  width: 54px;
-  height: 96px;
-  border-radius: 18px;
+  --tilt: 0deg;         /* set by JS while dragging */
+  --spin: 0deg;         /* set by JS: rotateY */
+  --radius: 22px;       /* cylinder radius */
+  width: 62px;
+  height: 112px;
+  border-radius: 20px;
   position: relative;
-  overflow: hidden;
   transform-style: preserve-3d;
-  transform: translateZ(0) rotateX(var(--tilt));
-  background:
-    radial-gradient(70% 50% at 30% 20%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, var(--ringFace1), var(--ringFace2), var(--ringFace3));
-  box-shadow:
-    0 10px 18px rgba(0,0,0,.24),
-    inset 0 0 0 2px rgba(0,0,0,.18),
-    inset 0 -14px 18px rgba(0,0,0,.22);
   cursor: grab;
 }
 
 .cryptex-ring.dragging{ cursor: grabbing; }
-
-/* Fake cylinder depth: side shading */
-.cryptex-ring:before,
-.cryptex-ring:after{
-  content:"";
-  position:absolute;
-  top:-8px; bottom:-8px;
-  width: 18px;
-  border-radius: 14px;
-  pointer-events:none;
-  opacity:.9;
-}
-
-.cryptex-ring:before{
-  left:-6px;
-  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,0));
-}
-
-.cryptex-ring:after{
-  right:-6px;
-  background: linear-gradient(270deg, rgba(0,0,0,.35), rgba(0,0,0,0));
-}
-
-/* Window / focus slot */
-.cryptex-window{
-  position:absolute;
-  top:50%;
-  left: 7px;
-  right: 7px;
-  height: 30px;
-  transform: translateY(-50%) translateZ(12px);
-  border-radius: 12px;
-  background: rgba(0,0,0,.16);
-  box-shadow:
-    inset 0 0 0 2px rgba(255,255,255,.14),
-    inset 0 -10px 16px rgba(0,0,0,.22),
-    0 6px 10px rgba(0,0,0,.18);
-  pointer-events:none;
-}
-
-/* Letters track */
-.cryptex-track{
-  position:absolute;
-  top:50%;
-  left:0; right:0;
-  transform: translateY(0);
-  transition: transform 120ms ease;
-}
-
-.cryptex-ring.dragging .cryptex-track{ transition:none; }
-
-.cryptex-letter{
-  height: 30px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: var(--ink);
-  text-shadow: 0 1px 0 rgba(255,255,255,.35);
-}
-
-/* Locked overlay */
-.cryptex-lock-overlay{
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,.38);
-  opacity:0;
-  pointer-events:none;
-}
 
 .cryptex-ring.locked{
   filter: grayscale(.95) brightness(.82);
   cursor:not-allowed;
 }
 
-.cryptex-ring.locked .cryptex-lock-overlay{ opacity:1; }
+/* the “cylinder” itself */
+.cryptex-cylinder{
+  position:absolute;
+  inset: 0;
+  border-radius: 20px;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tilt)) rotateY(var(--spin));
+  transition: transform 120ms ease;
+}
 
-/* Actions */
+.cryptex-ring.dragging .cryptex-cylinder{
+  transition: none;
+}
+
+/* faces around cylinder */
+.cryptex-face{
+  position:absolute;
+  top: 14px;
+  left: 8px;
+  right: 8px;
+  height: 84px;
+  border-radius: 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:
+    radial-gradient(70% 60% at 30% 20%, rgba(255,255,255,.50), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #f1e3ba, #caa35b, #f6eccb);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,.16),
+    inset 0 -16px 18px rgba(0,0,0,.22);
+
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.cryptex-face span{
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+  transform: translateZ(2px);
+}
+
+/* “window” that highlights the chosen character (front) */
+.cryptex-window{
+  position:absolute;
+  left: 10px;
+  right: 10px;
+  top: 50%;
+  height: 36px;
+  transform: translateY(-50%) translateZ(30px);
+  border-radius: 14px;
+  background: rgba(0,0,0,.18);
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.14),
+    inset 0 -12px 18px rgba(0,0,0,.25),
+    0 8px 14px rgba(0,0,0,.20);
+  pointer-events:none;
+}
+
+/* light / shadow overlays to sell depth */
+.cryptex-shade{
+  position:absolute;
+  inset: 0;
+  border-radius: 20px;
+  pointer-events:none;
+  transform: translateZ(32px);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.30), rgba(0,0,0,0) 35%, rgba(255,255,255,.06) 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,.32));
+  mix-blend-mode: multiply;
+  opacity: .55;
+}
+
+.cryptex-highlight{
+  position:absolute;
+  inset: 0;
+  border-radius: 20px;
+  pointer-events:none;
+  transform: translateZ(33px);
+  background:
+    radial-gradient(60% 50% at 30% 20%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%);
+  opacity: .85;
+}
+
+.cryptex-lock-overlay{
+  position:absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(0,0,0,.38);
+  opacity: 0;
+  pointer-events:none;
+  transform: translateZ(40px);
+}
+
+.cryptex-ring.locked .cryptex-lock-overlay{ opacity: 1; }
+
+/* ===== Actions ===== */
 .cryptex-actions{
   margin-top: 12px;
   display:flex;
-  gap: 10px;
 }
 
 .cryptex-check{
@@ -241,5 +257,5 @@
 
 .cryptex.failed .cryptex-body,
 .cryptex.failed .cryptex-cap{
-  filter: contrast(1.05) saturate(.8);
+  filter: contrast(1.05) saturate(.82);
 }
