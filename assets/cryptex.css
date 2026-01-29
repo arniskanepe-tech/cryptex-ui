@@ -98,15 +98,19 @@
   pointer-events:none;
   background:
     radial-gradient(100% 60% at 50% 0%, rgba(255,255,255,.08), rgba(255,255,255,0) 60%),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.04) 6px, rgba(0,0,0,.02) 6px, rgba(0,0,0,.02) 12px);
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,.04),
+      rgba(255,255,255,.04) 6px,
+      rgba(0,0,0,.02) 6px,
+      rgba(0,0,0,.02) 12px
+    );
   opacity:.35;
   mix-blend-mode: overlay;
 }
 
 /* Rings (cylinders) */
 .cryptex-ring{
-  --tilt: 0deg;      /* set by JS while dragging */
-  --spin: 0deg;      /* set by JS based on index */
+  --tilt: 0deg; /* set by JS while dragging */
   width: 54px;
   height: 96px;
   border-radius: 18px;
