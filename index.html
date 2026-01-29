@@ -3,19 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cryptex 3D (WebGL prototype)</title>
+  <title>Cryptex 3D (WebGL)</title>
   <style>
     :root{ --bg:#f5f5f5; }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); overflow:hidden; }
+    canvas{ position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+
     .ui{
-      position:fixed; inset:0 auto auto 0; width:100%;
-      padding:14px 16px; box-sizing:border-box;
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      position:fixed; left:0; top:0; width:100%;
+      padding:12px 14px; box-sizing:border-box;
+      display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
       background: linear-gradient(180deg, rgba(245,245,245,.96), rgba(245,245,245,.70), rgba(245,245,245,0));
       backdrop-filter: blur(6px);
+      z-index:10;
     }
-    .ui h1{ margin:0; font-size:22px; font-weight:900; letter-spacing:.2px; }
-    .ui .sp{ flex:1; min-width:12px; }
+    .ui h1{ margin:0; font-size:20px; font-weight:900; letter-spacing:.2px; }
+    .ui .sp{ flex:1; min-width:10px; }
     .ui label{ font-size:12px; opacity:.75; display:block; margin-bottom:4px; }
     .ui input{ padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.18); min-width:180px; }
     .ui input[type="number"]{ min-width:90px; width:90px; }
@@ -28,23 +31,23 @@
     .ui button:disabled{ opacity:.45; cursor:not-allowed; }
 
     #status{
-      position:fixed; left:16px; bottom:14px;
-      background:rgba(0,0,0,.55); color:#fff; padding:10px 12px; border-radius:12px;
-      font-size:13px;
+      position:fixed; left:12px; bottom:12px;
+      background:rgba(0,0,0,.60); color:#fff; padding:10px 12px; border-radius:12px;
+      font-size:13px; z-index:10;
     }
-    canvas{ display:block; width:100vw; height:100vh; }
     .hint{
-      position:fixed; right:16px; bottom:14px;
-      background:rgba(255,255,255,.82); padding:10px 12px; border-radius:12px;
-      font-size:12px; max-width:360px; line-height:1.35;
+      position:fixed; right:12px; bottom:12px;
+      background:rgba(255,255,255,.85); padding:10px 12px; border-radius:12px;
+      font-size:12px; max-width:420px; line-height:1.35;
       border:1px solid rgba(0,0,0,.10);
+      z-index:10;
     }
     .kbd{ font-weight:900; padding:1px 6px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; }
   </style>
 </head>
 <body>
   <div class="ui">
-    <h1>Cryptex 3D (WebGL) — prototype</h1>
+    <h1>Cryptex 3D (WebGL)</h1>
     <div class="sp"></div>
     <div>
       <label>Riņķu skaits</label>
@@ -61,12 +64,12 @@
 
   <div id="status">Ievadi kodu: 0/8</div>
   <div class="hint">
-    Grozi riņķi: <span class="kbd">drag</span> uz riņķa vai <span class="kbd">scroll</span> virs riņķa (desktop).<br>
+    <b>Riņķis:</b> <span class="kbd">drag</span> uz riņķa vai <span class="kbd">scroll</span> virs riņķa.<br>
+    <b>Skats:</b> turi <span class="kbd">Shift</span> + <span class="kbd">drag</span> jebkur fonā (pagriezt visu).<br>
     Atbloķēšana ir secīga: <span class="kbd">+1 riņķis</span>. Pārbaude — tikai beigās.
   </div>
 
-  <!-- Three.js CDN (no build step; works on GitHub Pages) -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="assets/cryptex-3d.js?v=1"></script>
+  <script src="assets/cryptex-3d.js?v=2"></script>
 </body>
 </html>
