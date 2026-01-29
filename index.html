@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cryptex demo</title>
+  <title>Cryptex demo (3D)</title>
 
-  <!-- cache-bust, lai uz GitHub Pages uzreiz redzi izmaiņas -->
-  <link rel="stylesheet" href="assets/cryptex.css?v=3" />
+  <link rel="stylesheet" href="assets/cryptex.css?v=4" />
 
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 18px; }
-    .panel { display: grid; gap: 10px; max-width: 860px; }
+    .panel { display: grid; gap: 10px; max-width: 920px; }
     .row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
     label { font-size: 13px; opacity: .8; }
     input { padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,.18); }
@@ -21,7 +20,7 @@
   </style>
 </head>
 <body>
-  <h2>Cryptex (standalone) – sequential unlock, final check only</h2>
+  <h2>Cryptex (standalone) — sequential unlock, final check only (TRUE 3D rings)</h2>
 
   <div class="panel">
     <div class="row">
@@ -41,14 +40,14 @@
     </div>
 
     <div class="hint">
-      Līdz beigām NAV pārbaudes. Tu vari grozīt tikai atbloķētos riņķus, bet pareizību pārbaudīt var tikai pašās beigās,
+      Līdz beigām NAV pārbaudes. Tu vari grozīt tikai atbloķētos riņķus, bet pareizību pārbaudīt var tikai beigās,
       kad atbloķēti visi riņķi un aktivizējas “Pārbaudīt”.
     </div>
   </div>
 
   <div id="mount"></div>
 
-  <script src="assets/cryptex.js?v=3"></script>
+  <script src="assets/cryptex.js?v=4"></script>
   <script>
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let cryptex = null;
@@ -65,20 +64,15 @@
         alphabet,
         solution,
         requireFinalCheckButton: true,
-        onProgress: (p, total) => console.log("progress", p, "/", total),
         onUnlock: (code) => alert("ATVĒRĀS ✅\n" + code),
         onFail: (code) => alert("SABIRA PELNOS ❌\n" + code),
       });
 
-      // sākumā 0 atbloķēti
       cryptex.setProgress(0);
     }
 
     document.getElementById("rebuild").addEventListener("click", build);
-    document.getElementById("levelDone").addEventListener("click", () => {
-      if (!cryptex) return;
-      cryptex.unlockNextRing();
-    });
+    document.getElementById("levelDone").addEventListener("click", () => cryptex?.unlockNextRing());
 
     build();
   </script>
