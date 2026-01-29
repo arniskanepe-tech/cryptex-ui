@@ -1,18 +1,6 @@
 // assets/cryptex.js
 // Cryptex UI component (DOM-based)
 // Sequential unlock + final check only (no intermediate correctness feedback)
-//
-// Public API:
-//   const c = new Cryptex(el, { ringsCount, alphabet, solution, requireFinalCheckButton, onUnlock, onFail, onProgress });
-//   c.unlockNextRing();          // +1 unlocked ring (progress)
-//   c.setProgress(n);            // set unlocked count directly
-//   c.checkFinal();              // only meaningful when progress === ringsCount
-//   c.getCode();                 // current code
-//   c.setSolution(str);          // change final solution
-//
-// Notes:
-// - No correctness feedback until final check.
-// - Locked rings cannot be rotated by the user.
 
 (function () {
   class Cryptex {
@@ -33,7 +21,7 @@
 
       this.state = {
         indices: Array(this.opts.ringsCount).fill(0),
-        progress: 0, // how many rings are unlocked from left to right
+        progress: 0,
         isFinalChecked: false,
       };
 
@@ -45,7 +33,6 @@
       this._updateFinalControls();
     }
 
-    // ---------- DOM ----------
     _build() {
       this.root.classList.add("cryptex");
 
@@ -73,7 +60,6 @@
         <div class="cryptex-status" aria-live="polite"></div>
       `;
 
-      this.body = this.root.querySelector(".cryptex-body");
       this.ringEls = Array.from(this.root.querySelectorAll(".cryptex-ring"));
       this.statusEl = this.root.querySelector(".cryptex-status");
       this.checkBtn = this.root.querySelector(".cryptex-check");
@@ -101,7 +87,6 @@
         let dragging = false;
 
         const onDown = (e) => {
-          // only unlocked rings can be manipulated
           if (!this._isRingUnlocked(ringIndex)) return;
 
           e.preventDefault();
@@ -111,7 +96,7 @@
           startIdx = this.state.indices[ringIndex];
           ringEl.classList.add("dragging");
 
-          // --- 3D tilt start ---
+          // 3D tilt start
           ringEl.style.setProperty("--tilt", "10deg");
         };
 
@@ -119,8 +104,8 @@
           if (!dragging) return;
           const dy = e.clientY - startY;
 
-          // --- 3D tilt update (feel like a physical cylinder) ---
-          const tilt = Math.max(-14, Math.min(14, -dy / 14)); // clamp
+          // 3D tilt update
+          const tilt = Math.max(-14, Math.min(14, -dy / 14));
           ringEl.style.setProperty("--tilt", `${tilt}deg`);
 
           const stepPx = this._letterHeight(ringEl);
@@ -131,7 +116,6 @@
           this.state.indices[ringIndex] = newIdx;
 
           this._renderRing(ringIndex);
-          // no correctness check here by design
         };
 
         const onUp = () => {
@@ -139,7 +123,7 @@
           dragging = false;
           ringEl.classList.remove("dragging");
 
-          // --- 3D tilt end ---
+          // 3D tilt end
           ringEl.style.setProperty("--tilt", "0deg");
         };
 
@@ -148,7 +132,6 @@
         ringEl.addEventListener("pointerup", onUp);
         ringEl.addEventListener("pointercancel", onUp);
 
-        // wheel support (desktop)
         ringEl.addEventListener(
           "wheel",
           (e) => {
@@ -166,7 +149,6 @@
       }
     }
 
-    // ---------- Helpers ----------
     _letterHeight(ringEl) {
       const letter = ringEl.querySelector(".cryptex-letter");
       if (!letter) return 0;
@@ -182,7 +164,6 @@
       return ringIndex < this.state.progress;
     }
 
-    // ---------- Render ----------
     _renderAll() {
       for (let i = 0; i < this.opts.ringsCount; i++) this._renderRing(i);
     }
@@ -194,8 +175,7 @@
       if (!h) return;
 
       const idx = this.state.indices[i];
-      const y = -(idx * h);
-      track.style.transform = `translateY(${y}px)`;
+      track.style.transform = `translateY(${-idx * h}px)`;
     }
 
     _updateLocks() {
@@ -210,12 +190,8 @@
       const ready = this.state.progress >= this.opts.ringsCount;
       if (this.checkBtn) this.checkBtn.disabled = !ready;
 
-      // no status spam; keep it minimal
-      if (!ready) {
-        this._setStatus(`Ievadi kodu: ${this.state.progress}/${this.opts.ringsCount}`);
-      } else {
-        this._setStatus(`Kods ievadīts. Spied "Pārbaudīt".`);
-      }
+      if (!ready) this._setStatus(`Ievadi kodu: ${this.state.progress}/${this.opts.ringsCount}`);
+      else this._setStatus(`Kods ievadīts. Spied "Pārbaudīt".`);
     }
 
     _setStatus(msg) {
@@ -223,12 +199,10 @@
     }
 
     _emitProgress() {
-      if (this.opts.onProgress) {
-        this.opts.onProgress(this.state.progress, this.opts.ringsCount);
-      }
+      if (this.opts.onProgress) this.opts.onProgress(this.state.progress, this.opts.ringsCount);
     }
 
-    // ---------- Public API ----------
+    // Public API
     getCode() {
       const letters = this.opts.alphabet;
       return this.state.indices.map((i) => letters[i]).join("");
@@ -255,14 +229,12 @@
       return this.state.progress;
     }
 
-    rotate(ringIndex, dir /* 1 down, -1 up */) {
+    rotate(ringIndex, dir) {
       if (!this._isRingUnlocked(ringIndex)) return;
-      const cur = this.state.indices[ringIndex];
-      this.state.indices[ringIndex] = this._wrapIndex(cur + dir);
+      this.state.indices[ringIndex] = this._wrapIndex(this.state.indices[ringIndex] + dir);
       this._renderRing(ringIndex);
     }
 
-    // FINAL check only
     checkFinal() {
       const ready = this.state.progress >= this.opts.ringsCount;
       if (!ready) return false;
