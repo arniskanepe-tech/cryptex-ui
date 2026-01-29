@@ -1,8 +1,7 @@
 /* assets/cryptex.css */
-/* TRUE 3D rings: each ring is a cylinder made of faces around Y-axis */
+/* TRUE 3D rings: metal cylinder + letter band around it */
 
 :root{
-  --bg: #ffffff;
   --metalDark:#241a10;
   --metalMid:#6f5a36;
   --gold1:#e6cd87;
@@ -10,8 +9,7 @@
   --gold3:#6a512a;
   --ink:#1a1208;
 
-  /* 3D tuning */
-  --persp: 1100px;
+  --persp: 1200px;
   --bodyTilt: 12deg;
 }
 
@@ -28,10 +26,10 @@
   align-items:center;
   gap:14px;
   perspective: var(--persp);
-  perspective-origin: 50% 50%;
+  perspective-origin: 50% 40%;
 }
 
-/* ===== Caps ===== */
+/* Caps */
 .cryptex-cap{
   width: 74px;
   height: 112px;
@@ -73,7 +71,7 @@
   box-shadow: inset 0 0 0 2px rgba(0,0,0,.12);
 }
 
-/* ===== Body ===== */
+/* Body */
 .cryptex-body{
   display:flex;
   gap:12px;
@@ -91,7 +89,6 @@
   position: relative;
 }
 
-/* faint engraved stripes */
 .cryptex-body:before{
   content:"";
   position:absolute;
@@ -105,12 +102,11 @@
   mix-blend-mode: overlay;
 }
 
-/* ===== Ring wrapper ===== */
+/* Ring */
 .cryptex-ring{
-  --tilt: 0deg;         /* set by JS while dragging */
-  --spin: 0deg;         /* set by JS: rotateY */
-  --radius: 22px;       /* cylinder radius */
-  width: 62px;
+  --tilt: 0deg;
+  --radius: 26px; /* IMPORTANT: bigger radius = more cylinder feel */
+  width: 66px;
   height: 112px;
   border-radius: 20px;
   position: relative;
@@ -119,47 +115,60 @@
 }
 
 .cryptex-ring.dragging{ cursor: grabbing; }
+.cryptex-ring.locked{ filter: grayscale(.95) brightness(.82); cursor:not-allowed; }
 
-.cryptex-ring.locked{
-  filter: grayscale(.95) brightness(.82);
-  cursor:not-allowed;
+/* metal cylinder body behind letters */
+.cryptex-metal{
+  position:absolute;
+  inset: 0;
+  border-radius: 20px;
+  transform: translateZ(0);
+  background:
+    radial-gradient(70% 70% at 30% 15%, rgba(255,255,255,.20), rgba(255,255,255,0) 60%),
+    linear-gradient(90deg, rgba(0,0,0,.38), rgba(255,255,255,.08) 25%, rgba(0,0,0,0) 50%, rgba(255,255,255,.06) 75%, rgba(0,0,0,.42));
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,.20),
+    inset 0 -18px 22px rgba(0,0,0,.28),
+    0 12px 18px rgba(0,0,0,.20);
 }
 
-/* the “cylinder” itself */
+/* cylinder with faces */
 .cryptex-cylinder{
   position:absolute;
   inset: 0;
   border-radius: 20px;
   transform-style: preserve-3d;
-  transform: rotateX(var(--tilt)) rotateY(var(--spin));
+  /* JS sets: rotateX(var(--tilt)) rotateY(spin) */
   transition: transform 120ms ease;
 }
 
-.cryptex-ring.dragging .cryptex-cylinder{
-  transition: none;
-}
+.cryptex-ring.dragging .cryptex-cylinder{ transition:none; }
 
-/* faces around cylinder */
+/* letter faces (only as a mid band) */
 .cryptex-face{
   position:absolute;
-  top: 14px;
-  left: 8px;
-  right: 8px;
-  height: 84px;
-  border-radius: 16px;
+  left: 10px;
+  right: 10px;
+  top: 50%;
+  height: 34px;
+  transform-style: preserve-3d;
+  border-radius: 12px;
   display:flex;
   align-items:center;
   justify-content:center;
 
+  /* brass tile */
   background:
-    radial-gradient(70% 60% at 30% 20%, rgba(255,255,255,.50), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, #f1e3ba, #caa35b, #f6eccb);
+    radial-gradient(70% 60% at 30% 20%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #f2e6bf, #caa35b, #f6eccb);
   box-shadow:
     inset 0 0 0 2px rgba(0,0,0,.16),
-    inset 0 -16px 18px rgba(0,0,0,.22);
+    inset 0 -14px 16px rgba(0,0,0,.22);
 
   backface-visibility: hidden;
-  transform-style: preserve-3d;
+
+  /* center the band vertically */
+  transform: translateY(-50%);
 }
 
 .cryptex-face span{
@@ -168,35 +177,33 @@
   letter-spacing: 1px;
   color: var(--ink);
   text-shadow: 0 1px 0 rgba(255,255,255,.35);
-  transform: translateZ(2px);
 }
 
-/* “window” that highlights the chosen character (front) */
+/* window highlight */
 .cryptex-window{
   position:absolute;
   left: 10px;
   right: 10px;
   top: 50%;
-  height: 36px;
-  transform: translateY(-50%) translateZ(30px);
+  height: 40px;
+  transform: translateY(-50%) translateZ(36px);
   border-radius: 14px;
-  background: rgba(0,0,0,.18);
+  background: rgba(0,0,0,.14);
   box-shadow:
     inset 0 0 0 2px rgba(255,255,255,.14),
     inset 0 -12px 18px rgba(0,0,0,.25),
-    0 8px 14px rgba(0,0,0,.20);
+    0 10px 16px rgba(0,0,0,.18);
   pointer-events:none;
 }
 
-/* light / shadow overlays to sell depth */
 .cryptex-shade{
   position:absolute;
   inset: 0;
   border-radius: 20px;
   pointer-events:none;
-  transform: translateZ(32px);
+  transform: translateZ(40px);
   background:
-    linear-gradient(90deg, rgba(0,0,0,.30), rgba(0,0,0,0) 35%, rgba(255,255,255,.06) 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,.32));
+    linear-gradient(90deg, rgba(0,0,0,.34), rgba(0,0,0,0) 35%, rgba(255,255,255,.05) 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,.36));
   mix-blend-mode: multiply;
   opacity: .55;
 }
@@ -206,10 +213,10 @@
   inset: 0;
   border-radius: 20px;
   pointer-events:none;
-  transform: translateZ(33px);
+  transform: translateZ(41px);
   background:
-    radial-gradient(60% 50% at 30% 20%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%);
-  opacity: .85;
+    radial-gradient(60% 50% at 30% 18%, rgba(255,255,255,.26), rgba(255,255,255,0) 60%);
+  opacity: .9;
 }
 
 .cryptex-lock-overlay{
@@ -219,16 +226,13 @@
   background: rgba(0,0,0,.38);
   opacity: 0;
   pointer-events:none;
-  transform: translateZ(40px);
+  transform: translateZ(60px);
 }
 
 .cryptex-ring.locked .cryptex-lock-overlay{ opacity: 1; }
 
-/* ===== Actions ===== */
-.cryptex-actions{
-  margin-top: 12px;
-  display:flex;
-}
+/* Actions */
+.cryptex-actions{ margin-top: 12px; display:flex; }
 
 .cryptex-check{
   width:100%;
@@ -242,20 +246,10 @@
 }
 
 .cryptex-check:disabled{ opacity:.45; }
+.cryptex-status{ margin-top: 10px; font-size: 14px; opacity:.85; }
 
-.cryptex-status{
-  margin-top: 10px;
-  font-size: 14px;
-  opacity:.85;
-}
-
-/* End states */
 .cryptex.unlocked .cryptex-body,
-.cryptex.unlocked .cryptex-cap{
-  filter: brightness(1.08);
-}
+.cryptex.unlocked .cryptex-cap{ filter: brightness(1.08); }
 
 .cryptex.failed .cryptex-body,
-.cryptex.failed .cryptex-cap{
-  filter: contrast(1.05) saturate(.82);
-}
+.cryptex.failed .cryptex-cap{ filter: contrast(1.05) saturate(.82); }
