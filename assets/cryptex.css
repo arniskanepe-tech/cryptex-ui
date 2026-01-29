@@ -1,255 +1,60 @@
-/* assets/cryptex.css */
-/* TRUE 3D rings: metal cylinder + letter band around it */
-
-:root{
-  --metalDark:#241a10;
-  --metalMid:#6f5a36;
-  --gold1:#e6cd87;
-  --gold2:#b58b43;
-  --gold3:#6a512a;
-  --ink:#1a1208;
-
-  --persp: 1200px;
-  --bodyTilt: 12deg;
-}
-
-.cryptex{
-  display:inline-block;
-  user-select:none;
-  -webkit-user-select:none;
-  touch-action:none;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-}
-
+body{font-family:system-ui;background:#f4f4f4}
 .cryptex-shell{
   display:flex;
   align-items:center;
   gap:14px;
-  perspective: var(--persp);
-  perspective-origin: 50% 40%;
+  perspective:1200px;
 }
-
-/* Caps */
 .cryptex-cap{
-  width: 74px;
-  height: 112px;
-  border-radius: 22px;
-  position: relative;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--bodyTilt));
-  background:
-    radial-gradient(60% 60% at 30% 20%, rgba(255,255,255,.50), rgba(255,255,255,0) 62%),
-    linear-gradient(180deg, var(--gold3), var(--gold1), var(--gold2), var(--gold3));
-  box-shadow:
-    0 22px 34px rgba(0,0,0,.28),
-    inset 0 0 0 2px rgba(255,255,255,.14),
-    inset 0 -16px 22px rgba(0,0,0,.26);
+  width:60px;height:120px;
+  background:linear-gradient(180deg,#f5d58a,#9a6a2f);
+  border-radius:14px;
 }
-
-.cryptex-cap:before{
-  content:"";
-  position:absolute;
-  inset: 10px;
-  border-radius: 18px;
-  background:
-    radial-gradient(70% 70% at 30% 25%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, rgba(0,0,0,.20), rgba(255,255,255,.06), rgba(0,0,0,.24));
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
-  opacity:.88;
-}
-
-.cryptex-cap .marker{
-  position:absolute;
-  top:50%;
-  left:50%;
-  width: 18px;
-  height: 18px;
-  transform: translate(-50%,-50%) rotate(45deg);
-  border-radius: 5px;
-  background: rgba(0,0,0,.22);
-  border: 2px solid rgba(255,255,255,.30);
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,.12);
-}
-
-/* Body */
 .cryptex-body{
   display:flex;
-  gap:12px;
-  padding: 16px 18px;
-  border-radius: 26px;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--bodyTilt));
-  background:
-    radial-gradient(90% 90% at 20% 15%, rgba(255,255,255,.14), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, var(--metalDark), var(--metalMid), var(--metalDark));
-  box-shadow:
-    0 24px 38px rgba(0,0,0,.30),
-    inset 0 0 0 2px rgba(255,255,255,.10),
-    inset 0 -18px 24px rgba(0,0,0,.30);
-  position: relative;
+  gap:6px;
+  padding:14px;
+  background:linear-gradient(180deg,#4a3a24,#1f170d);
+  border-radius:20px;
 }
-
-.cryptex-body:before{
-  content:"";
-  position:absolute;
-  inset: 12px;
-  border-radius: 22px;
-  pointer-events:none;
-  background:
-    radial-gradient(100% 70% at 50% 0%, rgba(255,255,255,.09), rgba(255,255,255,0) 65%),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.04) 7px, rgba(0,0,0,.02) 7px, rgba(0,0,0,.02) 14px);
-  opacity:.35;
-  mix-blend-mode: overlay;
-}
-
-/* Ring */
 .cryptex-ring{
-  --tilt: 0deg;
-  --radius: 26px; /* IMPORTANT: bigger radius = more cylinder feel */
-  width: 66px;
-  height: 112px;
-  border-radius: 20px;
-  position: relative;
-  transform-style: preserve-3d;
-  cursor: grab;
+  position:relative;
+  width:70px;height:110px;
+  perspective:800px;
 }
-
-.cryptex-ring.dragging{ cursor: grabbing; }
-.cryptex-ring.locked{ filter: grayscale(.95) brightness(.82); cursor:not-allowed; }
-
-/* metal cylinder body behind letters */
-.cryptex-metal{
+.cryptex-ring.locked{opacity:.35}
+.cryptex-window{
   position:absolute;
-  inset: 0;
-  border-radius: 20px;
-  transform: translateZ(0);
-  background:
-    radial-gradient(70% 70% at 30% 15%, rgba(255,255,255,.20), rgba(255,255,255,0) 60%),
-    linear-gradient(90deg, rgba(0,0,0,.38), rgba(255,255,255,.08) 25%, rgba(0,0,0,0) 50%, rgba(255,255,255,.06) 75%, rgba(0,0,0,.42));
-  box-shadow:
-    inset 0 0 0 2px rgba(0,0,0,.20),
-    inset 0 -18px 22px rgba(0,0,0,.28),
-    0 12px 18px rgba(0,0,0,.20);
+  inset:32px 10px;
+  background:rgba(0,0,0,.35);
+  border-radius:12px;
+  z-index:2;
 }
-
-/* cylinder with faces */
 .cryptex-cylinder{
   position:absolute;
-  inset: 0;
-  border-radius: 20px;
-  transform-style: preserve-3d;
-  /* JS sets: rotateX(var(--tilt)) rotateY(spin) */
-  transition: transform 120ms ease;
+  inset:0;
+  transform-style:preserve-3d;
+  transition:transform .25s ease;
 }
-
-.cryptex-ring.dragging .cryptex-cylinder{ transition:none; }
-
-/* letter faces (only as a mid band) */
 .cryptex-face{
+  --radius:38px;
   position:absolute;
-  left: 10px;
-  right: 10px;
-  top: 50%;
-  height: 34px;
-  transform-style: preserve-3d;
-  border-radius: 12px;
+  left:10px; right:10px;
+  top:50%;
+  height:32px;
+  transform:
+    translateY(-50%)
+    rotateY(var(--ry))
+    translateZ(var(--radius));
   display:flex;
   align-items:center;
   justify-content:center;
-
-  /* brass tile */
+  border-radius:10px;
   background:
-    radial-gradient(70% 60% at 30% 20%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, #f2e6bf, #caa35b, #f6eccb);
-  box-shadow:
-    inset 0 0 0 2px rgba(0,0,0,.16),
-    inset 0 -14px 16px rgba(0,0,0,.22);
-
-  backface-visibility: hidden;
-
-  /* center the band vertically */
-  transform: translateY(-50%);
+    linear-gradient(180deg,#f3e7c2,#c8a45a,#f7efd4);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.18);
+  backface-visibility:hidden;
 }
-
 .cryptex-face span{
-  font-weight: 900;
-  font-size: 22px;
-  letter-spacing: 1px;
-  color: var(--ink);
-  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+  font-weight:900;
 }
-
-/* window highlight */
-.cryptex-window{
-  position:absolute;
-  left: 10px;
-  right: 10px;
-  top: 50%;
-  height: 40px;
-  transform: translateY(-50%) translateZ(36px);
-  border-radius: 14px;
-  background: rgba(0,0,0,.14);
-  box-shadow:
-    inset 0 0 0 2px rgba(255,255,255,.14),
-    inset 0 -12px 18px rgba(0,0,0,.25),
-    0 10px 16px rgba(0,0,0,.18);
-  pointer-events:none;
-}
-
-.cryptex-shade{
-  position:absolute;
-  inset: 0;
-  border-radius: 20px;
-  pointer-events:none;
-  transform: translateZ(40px);
-  background:
-    linear-gradient(90deg, rgba(0,0,0,.34), rgba(0,0,0,0) 35%, rgba(255,255,255,.05) 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,.36));
-  mix-blend-mode: multiply;
-  opacity: .55;
-}
-
-.cryptex-highlight{
-  position:absolute;
-  inset: 0;
-  border-radius: 20px;
-  pointer-events:none;
-  transform: translateZ(41px);
-  background:
-    radial-gradient(60% 50% at 30% 18%, rgba(255,255,255,.26), rgba(255,255,255,0) 60%);
-  opacity: .9;
-}
-
-.cryptex-lock-overlay{
-  position:absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: rgba(0,0,0,.38);
-  opacity: 0;
-  pointer-events:none;
-  transform: translateZ(60px);
-}
-
-.cryptex-ring.locked .cryptex-lock-overlay{ opacity: 1; }
-
-/* Actions */
-.cryptex-actions{ margin-top: 12px; display:flex; }
-
-.cryptex-check{
-  width:100%;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border:0;
-  color:#fff;
-  font-weight: 800;
-  background: linear-gradient(180deg, #111, #333);
-  box-shadow: 0 12px 18px rgba(0,0,0,.22);
-}
-
-.cryptex-check:disabled{ opacity:.45; }
-.cryptex-status{ margin-top: 10px; font-size: 14px; opacity:.85; }
-
-.cryptex.unlocked .cryptex-body,
-.cryptex.unlocked .cryptex-cap{ filter: brightness(1.08); }
-
-.cryptex.failed .cryptex-body,
-.cryptex.failed .cryptex-cap{ filter: contrast(1.05) saturate(.82); }

@@ -3,98 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cryptex demo (3D)</title>
+  <title>Cryptex demo (TRUE 3D)</title>
 
-  <!-- pacelts v, lai GitHub Pages noteikti paņem jauno -->
-  <link rel="stylesheet" href="assets/cryptex.css?v=6" />
-
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 18px; }
-    .panel { display: grid; gap: 10px; max-width: 920px; }
-    .row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
-    label { font-size: 13px; opacity: .8; }
-    input { padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,.18); }
-    button { padding: 12px 14px; border-radius: 12px; border: 0; background: #111; color: #fff; font-weight: 800; }
-    button.secondary { background: #444; }
-    .hint { font-size: 13px; opacity: .75; line-height: 1.4; }
-    #mount { margin-top: 18px; }
-  </style>
+  <link rel="stylesheet" href="assets/cryptex.css?v=7" />
 </head>
 <body>
   <h2>Cryptex (standalone) — sequential unlock, final check only (TRUE 3D rings)</h2>
 
-  <div class="panel">
-    <div class="row">
-      <div>
-        <label>Riņķu skaits</label>
-        <input id="ringsCount" type="number" value="8" min="1" max="30" />
-      </div>
-      <div>
-        <label>Solution (garums = riņķu skaits)</label>
-        <input id="solution" type="text" value="A1B2C3D4" />
-      </div>
-    </div>
-
-    <div class="row">
-      <button id="rebuild">Pārbūvēt komponenti</button>
-      <button id="levelDone" class="secondary">Simulēt: līmenis pabeigts (+1 riņķis)</button>
-    </div>
-
-    <div class="hint">
-      Līdz beigām NAV pārbaudes. Tu vari grozīt tikai atbloķētos riņķus, bet pareizību pārbaudīt var tikai beigās,
-      kad atbloķēti visi riņķi un aktivizējas “Pārbaudīt”.
-    </div>
+  <div style="margin-bottom:12px">
+    Riņķu skaits:
+    <input id="ringsCount" type="number" value="8" min="1" max="30" />
+    Solution:
+    <input id="solution" type="text" value="A1B2C3D4" />
+    <button id="rebuild">Pārbūvēt</button>
+    <button id="levelDone">+1 riņķis</button>
   </div>
 
   <div id="mount"></div>
 
-  <script src="assets/cryptex.js?v=6"></script>
+  <script src="assets/cryptex.js?v=7"></script>
   <script>
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let cryptex = null;
+    let cryptex;
 
-    const ringsInput = document.getElementById("ringsCount");
-    const solutionInput = document.getElementById("solution");
-
-    function normalizeSolution(len) {
-      // pad / trim līdz precīzi len
-      let s = String(solutionInput.value || "").trim().toUpperCase();
-      if (s.length > len) s = s.slice(0, len);
-      while (s.length < len) s += "A"; // default padding
-      solutionInput.value = s;
+    function normalizeSolution(len){
+      let s = (solution.value||"").toUpperCase();
+      if(s.length>len) s=s.slice(0,len);
+      while(s.length<len) s+="A";
+      solution.value=s;
       return s;
     }
 
-    function build() {
-      const mount = document.getElementById("mount");
-      mount.innerHTML = `<div id="cryptex"></div>`;
-
-      const ringsCount = Math.max(1, Math.min(30, Number(ringsInput.value) || 8));
-      ringsInput.value = String(ringsCount);
-
-      const solution = normalizeSolution(ringsCount);
+    function build(){
+      mount.innerHTML = "<div id='cryptex'></div>";
+      const n = Number(ringsCount.value)||8;
+      const sol = normalizeSolution(n);
 
       cryptex = new Cryptex(document.getElementById("cryptex"), {
-        ringsCount,
+        ringsCount: n,
         alphabet,
-        solution,
-        requireFinalCheckButton: true,
-        onUnlock: (code) => alert("ATVĒRĀS ✅\n" + code),
-        onFail: (code) => alert("SABIRA PELNOS ❌\n" + code),
+        solution: sol
       });
-
       cryptex.setProgress(0);
     }
 
-    // ja maini riņķu skaitu — automātiski pielāgo solution garumu (un var uzreiz rebuild)
-    ringsInput.addEventListener("change", () => {
-      const ringsCount = Math.max(1, Math.min(30, Number(ringsInput.value) || 8));
-      normalizeSolution(ringsCount);
-    });
-
-    document.getElementById("rebuild").addEventListener("click", build);
-    document.getElementById("levelDone").addEventListener("click", () => cryptex?.unlockNextRing());
-
+    rebuild.onclick = build;
+    levelDone.onclick = ()=>cryptex.unlockNextRing();
     build();
   </script>
 </body>

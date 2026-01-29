@@ -1,277 +1,92 @@
-// assets/cryptex.js
-// Cryptex UI component (TRUE 3D rings - fixed)
-// Sequential unlock + final check only
+(function(){
+class Cryptex{
+  constructor(root,opts){
+    this.root=root;
+    this.opts=Object.assign({
+      ringsCount:6,
+      alphabet:"ABCDEF",
+      solution:""
+    },opts);
+    this.state={
+      indices:Array(this.opts.ringsCount).fill(0),
+      progress:0
+    };
+    this.build();
+    this.bind();
+    this.renderAll();
+    this.updateLocks();
+  }
 
-(function () {
-  class Cryptex {
-    constructor(rootEl, opts = {}) {
-      if (!rootEl) throw new Error("Cryptex: rootEl is required");
-
-      this.root = rootEl;
-
-      this.opts = {
-        ringsCount: opts.ringsCount ?? 6,
-        alphabet: opts.alphabet ?? "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        solution: opts.solution ?? "",
-        requireFinalCheckButton: opts.requireFinalCheckButton ?? true,
-        onUnlock: typeof opts.onUnlock === "function" ? opts.onUnlock : null,
-        onFail: typeof opts.onFail === "function" ? opts.onFail : null,
-        onProgress: typeof opts.onProgress === "function" ? opts.onProgress : null,
-      };
-
-      this.n = this.opts.alphabet.length; // faces per ring
-      this.stepDeg = 360 / this.n;
-
-      this.state = {
-        indices: Array(this.opts.ringsCount).fill(0),
-        progress: 0,
-        isFinalChecked: false,
-      };
-
-      this._build();
-      this._bind();
-      this._renderAll();
-      this._updateLocks();
-      this._emitProgress();
-      this._updateFinalControls();
-    }
-
-    _build() {
-      this.root.classList.add("cryptex");
-
-      this.root.innerHTML = `
-        <div class="cryptex-shell">
-          <div class="cryptex-cap left"><div class="marker"></div></div>
-
-          <div class="cryptex-body" aria-label="Cryptex">
-            ${Array.from({ length: this.opts.ringsCount })
-              .map((_, i) => this._ringHtml(i))
-              .join("")}
-          </div>
-
-          <div class="cryptex-cap right"><div class="marker"></div></div>
+  build(){
+    this.root.className="cryptex";
+    this.root.innerHTML=`
+      <div class="cryptex-shell">
+        <div class="cryptex-cap"></div>
+        <div class="cryptex-body">
+          ${Array.from({length:this.opts.ringsCount}).map((_,i)=>this.ringHtml(i)).join("")}
         </div>
+        <div class="cryptex-cap"></div>
+      </div>`;
+    this.rings=[...this.root.querySelectorAll(".cryptex-ring")];
+  }
 
-        <div class="cryptex-actions">
-          ${
-            this.opts.requireFinalCheckButton
-              ? `<button class="cryptex-check" type="button" disabled>Pārbaudīt</button>`
-              : ``
-          }
+  ringHtml(i){
+    const chars=this.opts.alphabet.split("");
+    const step=360/chars.length;
+    return `
+      <div class="cryptex-ring" data-i="${i}">
+        <div class="cryptex-window"></div>
+        <div class="cryptex-cylinder">
+          ${chars.map((c,j)=>`
+            <div class="cryptex-face" style="--ry:${j*step}deg">
+              <span>${c}</span>
+            </div>`).join("")}
         </div>
+      </div>`;
+  }
 
-        <div class="cryptex-status" aria-live="polite"></div>
-      `;
+  bind(){
+    this.rings.forEach((r,i)=>{
+      r.addEventListener("wheel",e=>{
+        if(i>=this.state.progress) return;
+        e.preventDefault();
+        this.rotate(i,e.deltaY>0?1:-1);
+      },{passive:false});
+    });
+  }
 
-      this.ringEls = Array.from(this.root.querySelectorAll(".cryptex-ring"));
-      this.cylinderEls = this.ringEls.map((r) => r.querySelector(".cryptex-cylinder"));
-      this.statusEl = this.root.querySelector(".cryptex-status");
-      this.checkBtn = this.root.querySelector(".cryptex-check");
-    }
+  rotate(i,dir){
+    const n=this.opts.alphabet.length;
+    this.state.indices[i]=(this.state.indices[i]+dir+n)%n;
+    this.renderRing(i);
+  }
 
-    _ringHtml(i) {
-      const letters = this.opts.alphabet.split("");
+  renderAll(){ this.rings.forEach((_,i)=>this.renderRing(i)); }
 
-      // Faces: only the "letter band" is visible, not the whole ring height.
-      const faces = letters
-        .map((ch, idx) => {
-          const a = idx * this.stepDeg;
-          return `
-            <div class="cryptex-face" style="transform: rotateY(${a}deg) translateZ(var(--radius));">
-              <span>${ch}</span>
-            </div>
-          `;
-        })
-        .join("");
+  renderRing(i){
+    const ring=this.rings[i];
+    const idx=this.state.indices[i];
+    ring.querySelector(".cryptex-cylinder")
+      .style.transform=`rotateY(${-idx*(360/this.opts.alphabet.length)}deg)`;
+  }
 
-      return `
-        <div class="cryptex-ring" data-ring="${i}" role="group" aria-label="Ring ${i + 1}">
-          <div class="cryptex-metal"></div>
+  updateLocks(){
+    this.rings.forEach((r,i)=>{
+      r.classList.toggle("locked",i>=this.state.progress);
+    });
+  }
 
-          <div class="cryptex-cylinder">
-            ${faces}
-          </div>
-
-          <div class="cryptex-window" aria-hidden="true"></div>
-          <div class="cryptex-shade" aria-hidden="true"></div>
-          <div class="cryptex-highlight" aria-hidden="true"></div>
-          <div class="cryptex-lock-overlay" aria-hidden="true"></div>
-        </div>
-      `;
-    }
-
-    _bind() {
-      this.ringEls.forEach((ringEl) => {
-        const ringIndex = Number(ringEl.dataset.ring);
-
-        let startY = 0;
-        let startIdx = 0;
-        let dragging = false;
-
-        const onDown = (e) => {
-          if (!this._isRingUnlocked(ringIndex)) return;
-          e.preventDefault();
-
-          dragging = true;
-          ringEl.setPointerCapture?.(e.pointerId);
-          startY = e.clientY;
-          startIdx = this.state.indices[ringIndex];
-
-          ringEl.classList.add("dragging");
-          ringEl.style.setProperty("--tilt", "10deg");
-        };
-
-        const onMove = (e) => {
-          if (!dragging) return;
-          const dy = e.clientY - startY;
-
-          const tilt = Math.max(-16, Math.min(16, -dy / 14));
-          ringEl.style.setProperty("--tilt", `${tilt}deg`);
-
-          // feel: how much drag equals one symbol step
-          const stepPx = 22;
-          const deltaSteps = Math.round(dy / stepPx);
-
-          const newIdx = this._wrapIndex(startIdx - deltaSteps);
-          this.state.indices[ringIndex] = newIdx;
-          this._renderRing(ringIndex);
-        };
-
-        const onUp = () => {
-          if (!dragging) return;
-          dragging = false;
-          ringEl.classList.remove("dragging");
-          ringEl.style.setProperty("--tilt", "0deg");
-        };
-
-        ringEl.addEventListener("pointerdown", onDown);
-        ringEl.addEventListener("pointermove", onMove);
-        ringEl.addEventListener("pointerup", onUp);
-        ringEl.addEventListener("pointercancel", onUp);
-
-        ringEl.addEventListener(
-          "wheel",
-          (e) => {
-            if (!this._isRingUnlocked(ringIndex)) return;
-            e.preventDefault();
-            const dir = e.deltaY > 0 ? 1 : -1;
-            this.rotate(ringIndex, dir);
-          },
-          { passive: false }
-        );
-      });
-
-      if (this.checkBtn) {
-        this.checkBtn.addEventListener("click", () => this.checkFinal());
-      }
-    }
-
-    _wrapIndex(idx) {
-      const n = this.n;
-      return ((idx % n) + n) % n;
-    }
-
-    _isRingUnlocked(ringIndex) {
-      return ringIndex < this.state.progress;
-    }
-
-    _renderAll() {
-      for (let i = 0; i < this.opts.ringsCount; i++) this._renderRing(i);
-    }
-
-    _renderRing(i) {
-      const ringEl = this.ringEls[i];
-      const cyl = this.cylinderEls[i];
-      const idx = this.state.indices[i];
-
-      // show idx at the front (window): rotate opposite direction
-      const spin = -(idx * this.stepDeg);
-
-      ringEl.style.setProperty("--spin", `${spin}deg`);
-      // apply on cylinder (not whole ring), so window stays stable
-      cyl.style.transform = `rotateX(var(--tilt)) rotateY(${spin}deg)`;
-    }
-
-    _updateLocks() {
-      this.ringEls.forEach((el, idx) => {
-        const unlocked = this._isRingUnlocked(idx);
-        el.classList.toggle("locked", !unlocked);
-        el.setAttribute("aria-disabled", unlocked ? "false" : "true");
-      });
-    }
-
-    _updateFinalControls() {
-      const ready = this.state.progress >= this.opts.ringsCount;
-      if (this.checkBtn) this.checkBtn.disabled = !ready;
-
-      if (!ready) this._setStatus(`Ievadi kodu: ${this.state.progress}/${this.opts.ringsCount}`);
-      else this._setStatus(`Kods ievadīts. Spied "Pārbaudīt".`);
-    }
-
-    _setStatus(msg) {
-      if (this.statusEl) this.statusEl.textContent = msg;
-    }
-
-    _emitProgress() {
-      if (this.opts.onProgress) this.opts.onProgress(this.state.progress, this.opts.ringsCount);
-    }
-
-    // Public API
-    getCode() {
-      const letters = this.opts.alphabet;
-      return this.state.indices.map((i) => letters[i]).join("");
-    }
-
-    setSolution(solution) {
-      this.opts.solution = String(solution ?? "");
-    }
-
-    setProgress(n) {
-      const nn = Math.max(0, Math.min(this.opts.ringsCount, Number(n) || 0));
-      this.state.progress = nn;
-      this._updateLocks();
-      this._emitProgress();
-      this._updateFinalControls();
-    }
-
-    unlockNextRing() {
-      if (this.state.progress >= this.opts.ringsCount) return this.state.progress;
-      this.state.progress += 1;
-      this._updateLocks();
-      this._emitProgress();
-      this._updateFinalControls();
-      return this.state.progress;
-    }
-
-    rotate(ringIndex, dir) {
-      if (!this._isRingUnlocked(ringIndex)) return;
-      this.state.indices[ringIndex] = this._wrapIndex(this.state.indices[ringIndex] + dir);
-      this._renderRing(ringIndex);
-    }
-
-    checkFinal() {
-      const ready = this.state.progress >= this.opts.ringsCount;
-      if (!ready) return false;
-
-      const code = this.getCode();
-      const ok = (this.opts.solution || "") === code;
-
-      this.state.isFinalChecked = true;
-
-      if (ok) {
-        this.root.classList.remove("failed");
-        this.root.classList.add("unlocked");
-        this._setStatus("Atvērts ✅");
-        if (this.opts.onUnlock) this.opts.onUnlock(code);
-      } else {
-        this.root.classList.remove("unlocked");
-        this.root.classList.add("failed");
-        this._setStatus("Nepareizi ❌");
-        if (this.opts.onFail) this.opts.onFail(code);
-      }
-      return ok;
+  unlockNextRing(){
+    if(this.state.progress<this.opts.ringsCount){
+      this.state.progress++;
+      this.updateLocks();
     }
   }
 
-  window.Cryptex = Cryptex;
+  setProgress(n){
+    this.state.progress=n;
+    this.updateLocks();
+  }
+}
+window.Cryptex=Cryptex;
 })();
