@@ -2,54 +2,71 @@
 <html lang="lv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cryptex demo (TRUE 3D)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cryptex 3D (WebGL prototype)</title>
+  <style>
+    :root{ --bg:#f5f5f5; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); }
+    .ui{
+      position:fixed; inset:0 auto auto 0; width:100%;
+      padding:14px 16px; box-sizing:border-box;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      background: linear-gradient(180deg, rgba(245,245,245,.96), rgba(245,245,245,.70), rgba(245,245,245,0));
+      backdrop-filter: blur(6px);
+    }
+    .ui h1{ margin:0; font-size:22px; font-weight:900; letter-spacing:.2px; }
+    .ui .sp{ flex:1; min-width:12px; }
+    .ui label{ font-size:12px; opacity:.75; display:block; margin-bottom:4px; }
+    .ui input{ padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.18); min-width:180px; }
+    .ui input[type="number"]{ min-width:90px; width:90px; }
+    .ui button{
+      padding:10px 12px; border-radius:12px; border:0; background:#111; color:#fff; font-weight:800;
+      box-shadow: 0 10px 18px rgba(0,0,0,.18);
+      cursor:pointer;
+    }
+    .ui button.secondary{ background:#444; }
+    .ui button:disabled{ opacity:.45; cursor:not-allowed; }
 
-  <link rel="stylesheet" href="assets/cryptex.css?v=7" />
+    #status{
+      position:fixed; left:16px; bottom:14px;
+      background:rgba(0,0,0,.55); color:#fff; padding:10px 12px; border-radius:12px;
+      font-size:13px;
+    }
+    canvas{ display:block; width:100vw; height:100vh; }
+    .hint{
+      position:fixed; right:16px; bottom:14px;
+      background:rgba(255,255,255,.82); padding:10px 12px; border-radius:12px;
+      font-size:12px; max-width:360px; line-height:1.35;
+      border:1px solid rgba(0,0,0,.10);
+    }
+    .kbd{ font-weight:900; padding:1px 6px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; }
+  </style>
 </head>
 <body>
-  <h2>Cryptex (standalone) — sequential unlock, final check only (TRUE 3D rings)</h2>
-
-  <div style="margin-bottom:12px">
-    Riņķu skaits:
-    <input id="ringsCount" type="number" value="8" min="1" max="30" />
-    Solution:
-    <input id="solution" type="text" value="A1B2C3D4" />
+  <div class="ui">
+    <h1>Cryptex 3D (WebGL) — prototype</h1>
+    <div class="sp"></div>
+    <div>
+      <label>Riņķu skaits</label>
+      <input id="ringsCount" type="number" value="8" min="1" max="30" />
+    </div>
+    <div>
+      <label>Solution (garums = riņķu skaits)</label>
+      <input id="solution" type="text" value="A1B2C3D4" />
+    </div>
     <button id="rebuild">Pārbūvēt</button>
-    <button id="levelDone">+1 riņķis</button>
+    <button id="levelDone" class="secondary">+1 riņķis</button>
+    <button id="checkBtn" disabled>Pārbaudīt</button>
   </div>
 
-  <div id="mount"></div>
+  <div id="status">Ievadi kodu: 0/8</div>
+  <div class="hint">
+    Grozi riņķi: <span class="kbd">drag</span> uz riņķa vai <span class="kbd">scroll</span> virs riņķa (desktop).<br>
+    Atbloķēšana ir secīga: <span class="kbd">+1 riņķis</span>. Pārbaude — tikai beigās.
+  </div>
 
-  <script src="assets/cryptex.js?v=7"></script>
-  <script>
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let cryptex;
-
-    function normalizeSolution(len){
-      let s = (solution.value||"").toUpperCase();
-      if(s.length>len) s=s.slice(0,len);
-      while(s.length<len) s+="A";
-      solution.value=s;
-      return s;
-    }
-
-    function build(){
-      mount.innerHTML = "<div id='cryptex'></div>";
-      const n = Number(ringsCount.value)||8;
-      const sol = normalizeSolution(n);
-
-      cryptex = new Cryptex(document.getElementById("cryptex"), {
-        ringsCount: n,
-        alphabet,
-        solution: sol
-      });
-      cryptex.setProgress(0);
-    }
-
-    rebuild.onclick = build;
-    levelDone.onclick = ()=>cryptex.unlockNextRing();
-    build();
-  </script>
+  <!-- Three.js CDN (no build step; works on GitHub Pages) -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="assets/cryptex-3d.js?v=1"></script>
 </body>
 </html>
