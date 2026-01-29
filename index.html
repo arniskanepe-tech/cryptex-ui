@@ -4,17 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cryptex demo</title>
-  <link rel="stylesheet" href="assets/cryptex.css" />
+
+  <!-- cache-bust, lai uz GitHub Pages uzreiz redzi izmaiņas -->
+  <link rel="stylesheet" href="assets/cryptex.css?v=3" />
+
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 18px; }
-    .panel { display: grid; gap: 10px; max-width: 720px; }
-    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+    .panel { display: grid; gap: 10px; max-width: 860px; }
+    .row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
     label { font-size: 13px; opacity: .8; }
     input { padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,.18); }
-    button { padding: 10px 12px; border-radius: 10px; border: 0; background: #111; color: #fff; font-weight: 700; }
+    button { padding: 12px 14px; border-radius: 12px; border: 0; background: #111; color: #fff; font-weight: 800; }
     button.secondary { background: #444; }
-    .hint { font-size: 13px; opacity: .7; }
-    #mount { margin-top: 16px; }
+    .hint { font-size: 13px; opacity: .75; line-height: 1.4; }
+    #mount { margin-top: 18px; }
   </style>
 </head>
 <body>
@@ -24,11 +27,11 @@
     <div class="row">
       <div>
         <label>Riņķu skaits</label>
-        <input id="ringsCount" type="number" value="6" min="1" max="30" />
+        <input id="ringsCount" type="number" value="8" min="1" max="30" />
       </div>
       <div>
         <label>Solution (garums = riņķu skaits)</label>
-        <input id="solution" type="text" value="A1B2C3" />
+        <input id="solution" type="text" value="A1B2C3D4" />
       </div>
     </div>
 
@@ -38,13 +41,14 @@
     </div>
 
     <div class="hint">
-      Līdz beigām NAV pārbaudes. Tikai kad atbloķēti visi riņķi, kļūst aktīva poga “Pārbaudīt”.
+      Līdz beigām NAV pārbaudes. Tu vari grozīt tikai atbloķētos riņķus, bet pareizību pārbaudīt var tikai pašās beigās,
+      kad atbloķēti visi riņķi un aktivizējas “Pārbaudīt”.
     </div>
   </div>
 
   <div id="mount"></div>
 
-  <script src="assets/cryptex.js"></script>
+  <script src="assets/cryptex.js?v=3"></script>
   <script>
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let cryptex = null;
@@ -52,7 +56,8 @@
     function build() {
       const mount = document.getElementById("mount");
       mount.innerHTML = `<div id="cryptex"></div>`;
-      const ringsCount = Number(document.getElementById("ringsCount").value) || 6;
+
+      const ringsCount = Number(document.getElementById("ringsCount").value) || 8;
       const solution = String(document.getElementById("solution").value || "").trim();
 
       cryptex = new Cryptex(document.getElementById("cryptex"), {
@@ -65,7 +70,7 @@
         onFail: (code) => alert("SABIRA PELNOS ❌\n" + code),
       });
 
-      // start: first ring unlocked? (ja gribi, lai jau no 1. līmeņa var uzreiz likt 1 simbolu, atstāj 0)
+      // sākumā 0 atbloķēti
       cryptex.setProgress(0);
     }
 
