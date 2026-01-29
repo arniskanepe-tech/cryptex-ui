@@ -179,4 +179,113 @@
     }
 
     _isRingUnlocked(ringIndex) {
-      r
+      return ringIndex < this.state.progress;
+    }
+
+    // ---------- Render ----------
+    _renderAll() {
+      for (let i = 0; i < this.opts.ringsCount; i++) this._renderRing(i);
+    }
+
+    _renderRing(i) {
+      const ringEl = this.ringEls[i];
+      const track = ringEl.querySelector(".cryptex-track");
+      const h = this._letterHeight(ringEl);
+      if (!h) return;
+
+      const idx = this.state.indices[i];
+      const y = -(idx * h);
+      track.style.transform = `translateY(${y}px)`;
+    }
+
+    _updateLocks() {
+      this.ringEls.forEach((el, idx) => {
+        const unlocked = this._isRingUnlocked(idx);
+        el.classList.toggle("locked", !unlocked);
+        el.setAttribute("aria-disabled", unlocked ? "false" : "true");
+      });
+    }
+
+    _updateFinalControls() {
+      const ready = this.state.progress >= this.opts.ringsCount;
+      if (this.checkBtn) this.checkBtn.disabled = !ready;
+
+      // no status spam; keep it minimal
+      if (!ready) {
+        this._setStatus(`Ievadi kodu: ${this.state.progress}/${this.opts.ringsCount}`);
+      } else {
+        this._setStatus(`Kods ievadīts. Spied "Pārbaudīt".`);
+      }
+    }
+
+    _setStatus(msg) {
+      if (this.statusEl) this.statusEl.textContent = msg;
+    }
+
+    _emitProgress() {
+      if (this.opts.onProgress) {
+        this.opts.onProgress(this.state.progress, this.opts.ringsCount);
+      }
+    }
+
+    // ---------- Public API ----------
+    getCode() {
+      const letters = this.opts.alphabet;
+      return this.state.indices.map((i) => letters[i]).join("");
+    }
+
+    setSolution(solution) {
+      this.opts.solution = String(solution ?? "");
+    }
+
+    setProgress(n) {
+      const nn = Math.max(0, Math.min(this.opts.ringsCount, Number(n) || 0));
+      this.state.progress = nn;
+      this._updateLocks();
+      this._emitProgress();
+      this._updateFinalControls();
+    }
+
+    unlockNextRing() {
+      if (this.state.progress >= this.opts.ringsCount) return this.state.progress;
+      this.state.progress += 1;
+      this._updateLocks();
+      this._emitProgress();
+      this._updateFinalControls();
+      return this.state.progress;
+    }
+
+    rotate(ringIndex, dir /* 1 down, -1 up */) {
+      if (!this._isRingUnlocked(ringIndex)) return;
+      const cur = this.state.indices[ringIndex];
+      this.state.indices[ringIndex] = this._wrapIndex(cur + dir);
+      this._renderRing(ringIndex);
+    }
+
+    // FINAL check only
+    checkFinal() {
+      const ready = this.state.progress >= this.opts.ringsCount;
+      if (!ready) return false;
+
+      const code = this.getCode();
+      const ok = (this.opts.solution || "") === code;
+
+      this.state.isFinalChecked = true;
+
+      if (ok) {
+        this.root.classList.remove("failed");
+        this.root.classList.add("unlocked");
+        this._setStatus("Atvērts ✅");
+        if (this.opts.onUnlock) this.opts.onUnlock(code);
+      } else {
+        this.root.classList.remove("unlocked");
+        this.root.classList.add("failed");
+        this._setStatus("Nepareizi ❌");
+        if (this.opts.onFail) this.opts.onFail(code);
+      }
+      return ok;
+    }
+  }
+
+  window.Cryptex = Cryptex;
+})();
