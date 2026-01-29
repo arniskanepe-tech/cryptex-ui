@@ -1,5 +1,5 @@
 // assets/cryptex.js
-// Cryptex UI component (TRUE 3D rings)
+// Cryptex UI component (TRUE 3D rings - fixed)
 // Sequential unlock + final check only
 
 (function () {
@@ -19,7 +19,7 @@
         onProgress: typeof opts.onProgress === "function" ? opts.onProgress : null,
       };
 
-      this.n = this.opts.alphabet.length;      // faces per ring
+      this.n = this.opts.alphabet.length; // faces per ring
       this.stepDeg = 360 / this.n;
 
       this.state = {
@@ -64,6 +64,7 @@
       `;
 
       this.ringEls = Array.from(this.root.querySelectorAll(".cryptex-ring"));
+      this.cylinderEls = this.ringEls.map((r) => r.querySelector(".cryptex-cylinder"));
       this.statusEl = this.root.querySelector(".cryptex-status");
       this.checkBtn = this.root.querySelector(".cryptex-check");
     }
@@ -71,11 +72,9 @@
     _ringHtml(i) {
       const letters = this.opts.alphabet.split("");
 
-      // build faces around cylinder
+      // Faces: only the "letter band" is visible, not the whole ring height.
       const faces = letters
         .map((ch, idx) => {
-          // rotateY by idx*step, push outward by radius
-          // radius comes from CSS var (--radius)
           const a = idx * this.stepDeg;
           return `
             <div class="cryptex-face" style="transform: rotateY(${a}deg) translateZ(var(--radius));">
@@ -87,16 +86,16 @@
 
       return `
         <div class="cryptex-ring" data-ring="${i}" role="group" aria-label="Ring ${i + 1}">
-          <div class="cryptex-cylinder"></div>
-          <div class="cryptex-window"></div>
-          <div class="cryptex-shade"></div>
-          <div class="cryptex-highlight"></div>
-          <div class="cryptex-lock-overlay" aria-hidden="true"></div>
+          <div class="cryptex-metal"></div>
 
-          <!-- faces -->
-          <div class="cryptex-cylinder" data-cylinder="${i}">
+          <div class="cryptex-cylinder">
             ${faces}
           </div>
+
+          <div class="cryptex-window" aria-hidden="true"></div>
+          <div class="cryptex-shade" aria-hidden="true"></div>
+          <div class="cryptex-highlight" aria-hidden="true"></div>
+          <div class="cryptex-lock-overlay" aria-hidden="true"></div>
         </div>
       `;
     }
@@ -104,7 +103,6 @@
     _bind() {
       this.ringEls.forEach((ringEl) => {
         const ringIndex = Number(ringEl.dataset.ring);
-        const cylinder = ringEl.querySelector(`[data-cylinder="${ringIndex}"]`);
 
         let startY = 0;
         let startIdx = 0;
@@ -130,7 +128,7 @@
           const tilt = Math.max(-16, Math.min(16, -dy / 14));
           ringEl.style.setProperty("--tilt", `${tilt}deg`);
 
-          // convert drag to steps: ~22px per step feels ok
+          // feel: how much drag equals one symbol step
           const stepPx = 22;
           const deltaSteps = Math.round(dy / stepPx);
 
@@ -183,11 +181,15 @@
 
     _renderRing(i) {
       const ringEl = this.ringEls[i];
+      const cyl = this.cylinderEls[i];
       const idx = this.state.indices[i];
 
-      // To show character idx in the window (front), rotate cylinder opposite direction:
+      // show idx at the front (window): rotate opposite direction
       const spin = -(idx * this.stepDeg);
+
       ringEl.style.setProperty("--spin", `${spin}deg`);
+      // apply on cylinder (not whole ring), so window stays stable
+      cyl.style.transform = `rotateX(var(--tilt)) rotateY(${spin}deg)`;
     }
 
     _updateLocks() {
