@@ -103,6 +103,7 @@
   const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, metalness: 0.9, roughness: 0.35 });
   const capMat   = new THREE.MeshStandardMaterial({ color: 0xd6b56b, metalness: 0.98, roughness: 0.22 });
   const ringMat  = new THREE.MeshStandardMaterial({ map: letterTex, metalness: 0.55, roughness: 0.35 });
+  const hubMat   = new THREE.MeshStandardMaterial({ color: 0x1b140d, metalness: 0.88, roughness: 0.45 });
 
   let cryptexGroup = null;
   let rings = [];
@@ -168,11 +169,11 @@
     const ringHeight = 0.55;
     const ringGap = 0.18;
     const bodyLen = ringsCount * (ringHeight + ringGap) + 1.3;
-
-    const tube = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, bodyLen, 56, 1, false), metalMat);
-    tube.rotation.z = Math.PI/2;
-    tube.castShadow = true;
-    cryptexGroup.add(tube);
+    // Mechanical core (inner rod) instead of a full outer tube
+    const coreRod = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, bodyLen + 2.2, 32, 1, false), hubMat);
+    coreRod.rotation.z = Math.PI/2;
+    coreRod.castShadow = true;
+    cryptexGroup.add(coreRod);
 
     const windowPlate = new THREE.Mesh(
       new THREE.PlaneGeometry(bodyLen*0.86, 0.62),
@@ -201,6 +202,17 @@
       const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
       r.position.set(x, 0, 0);
       r.rotation.z = Math.PI/2;
+
+      // Inner hub (bushing) gives mechanical depth and lets raycast hit the inside too
+      const hub = new THREE.Mesh(
+        new THREE.CylinderGeometry(ringRadius * 0.58, ringRadius * 0.58, ringHeight * 0.96, 32, 1, false),
+        hubMat
+      );
+      hub.castShadow = true;
+      hub.rotation.z = Math.PI/2;
+      hub.userData.parentRing = r;
+      r.add(hub);
+
       r.userData.index = 0;
       r.userData.ringIndex = i;
       cryptexGroup.add(r);
@@ -231,9 +243,11 @@
   function pickRing(e){
     setPointerFromEvent(e);
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(rings, false);
-    return hits.length ? hits[0].object : null;
-  }
+    const hits = raycaster.intersectObjects(rings, true); // recursive = true
+    if (!hits.length) return null;
+
+    const obj = hits[0].object;
+    return obj.userData.parentRing || obj;}
 
   // Pointer
   renderer.domElement.addEventListener("pointerdown", (e) => {
