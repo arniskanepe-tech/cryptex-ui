@@ -220,10 +220,13 @@
   const { colorTex: letterTex, bumpTex: letterBump } = makeLetterTextures();
   // --- Raised "letter tiles" materials (each letter on its own mini-plate) ---
   const _tileMatCache = new Map();
-  
+
   function getTileMaterials(ch){
+    if (_tileMatCache.has(ch)) return _tileMatCache.get(ch);
+
     // Outward face (+Z) gets the letter; other faces are plain.
     const letter = makeGlyphTexture(ch);
+
     const faceMat = new THREE.MeshStandardMaterial({
       map: letter.color,
       bumpMap: letter.bump,
@@ -231,27 +234,24 @@
       metalness: 0.10,
       roughness: 0.55
     });
+
     const sideMat = new THREE.MeshStandardMaterial({
       color: 0xd8d1c2,
       metalness: 0.06,
       roughness: 0.75
     });
+
     // BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z
-    return [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
+    const mats = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
+    _tileMatCache.set(ch, mats);
+    return mats;
   }
-);
-
-    _tileMatCache.set(ch, mat);
-    return mat;
-  }
-
-
 
   const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, metalness: 0.9, roughness: 0.35 });
   const capMat   = new THREE.MeshStandardMaterial({ color: 0xd6b56b, metalness: 0.98, roughness: 0.22 });
   const lipMat   = new THREE.MeshStandardMaterial({ color: 0xb89345, metalness: 0.98, roughness: 0.20 });
   const ringMat  = new THREE.MeshStandardMaterial({ color: 0xd6b36d, metalness: 0.55, roughness: 0.35 }); // base ring band (no printed strip)
-  const hubMat   = new THREE.MeshStandardMaterial({ color: 0x1b140d, metalness: 0.88, roughness: 0.45 });
+  const hubMat   = new THREE.MeshStandardMaterial({ color: 0x1b140d, metalness: 0.88, roughness: 0.45 });;
 
   let cryptexGroup = null;
   let rings = [];
