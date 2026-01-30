@@ -255,6 +255,9 @@
 
   let cryptexGroup = null;
   let rings = [];
+  // Readout (the long "window" where current symbols are shown)
+  let readoutGroup = null;
+  let readoutTiles = [];
   let ringsCount = 8;
   let progress = 0;
 
@@ -274,10 +277,27 @@
   function codeFromRings(){
     return rings.map(r => ALPHABET[r.userData.index]).join("");
   }
+
+  function updateReadout(){
+    if (!readoutTiles || readoutTiles.length === 0) return;
+    for (let i = 0; i < readoutTiles.length; i++){
+      const ring = rings[i];
+      if (!ring) continue;
+      const ch = ALPHABET[ring.userData.index] || "?";
+      const tex = makeGlyphTexture(ch);
+
+      const tile = readoutTiles[i];
+      const mat = tile.material;
+      mat.map = tex.color;
+      mat.needsUpdate = true;
+    }
+  }
+
   function applyRingIndex(ring, idx){
     idx = ((idx % ALPHABET.length) + ALPHABET.length) % ALPHABET.length;
     ring.userData.index = idx;
     ring.rotation.x = -idx * STEP;
+    updateReadout();
   }
 
   function fitCameraToObject(obj){
@@ -304,6 +324,8 @@
 
   function buildCryptex(){
     if (cryptexGroup) scene.remove(cryptexGroup);
+    readoutGroup = null;
+    readoutTiles = [];
 
     ringsCount = Math.max(1, Math.min(30, Number(ringsCountEl.value)||8));
     ringsCountEl.value = String(ringsCount);
@@ -323,12 +345,48 @@
     coreRod.castShadow = true;
     cryptexGroup.add(coreRod);
 
-    const windowPlate = new THREE.Mesh(
-      new THREE.PlaneGeometry(bodyLen*0.86, 0.62),
-      new THREE.MeshStandardMaterial({ color: 0x17110a, metalness: 0.2, roughness: 0.9 })
+    
+    // ===== Window / Readout =====
+    // This used to be a filled black plate; now it's a "frame" (no fill),
+    // so we can show the currently selected symbol from each ring inside it.
+    const windowW = bodyLen * 0.86;
+    const windowH = 0.62;
+    const windowZ = ringRadius + 0.50;
+
+    // Border only (no fill)
+    const windowFrame = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.PlaneGeometry(windowW, windowH)),
+      new THREE.LineBasicMaterial({ color: 0x111111 })
     );
-    windowPlate.position.set(0, 0, ringRadius + 0.50);
-    cryptexGroup.add(windowPlate);
+    windowFrame.position.set(0, 0, windowZ);
+    cryptexGroup.add(windowFrame);
+
+    // Per-ring "readout tiles" (small plates with the current glyph texture)
+    readoutGroup = new THREE.Group();
+    readoutGroup.position.set(0, 0, windowZ + 0.012); // slightly in front of frame
+    readoutTiles = [];
+
+    const tileW = ringHeight * 0.88;
+    const tileH = windowH * 0.80;
+    const tileGeo = new THREE.PlaneGeometry(tileW, tileH);
+
+    for (let i = 0; i < ringsCount; i++){
+      const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
+
+      const tex = makeGlyphTexture(ALPHABET[0]);
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex.color,
+        metalness: 0.05,
+        roughness: 0.55
+      });
+
+      const tile = new THREE.Mesh(tileGeo, mat);
+      tile.position.set(x, 0, 0);
+      readoutGroup.add(tile);
+      readoutTiles.push(tile);
+    }
+
+    cryptexGroup.add(readoutGroup);
 
     const capGeo = new THREE.CylinderGeometry(1.68, 1.68, 0.85, 56);
     const capL = new THREE.Mesh(capGeo, capMat);
@@ -455,6 +513,7 @@
 
     scene.add(cryptexGroup);
     fitCameraToObject(cryptexGroup);
+    updateReadout();
     updateStatus();
   }
 
