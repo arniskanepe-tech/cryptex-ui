@@ -545,8 +545,8 @@
 
     const r = pickRing(e);
 
-    // If click hits an unlocked ring -> ring drag
-    if (r && r.userData.ringIndex < progress){
+    // If click hits a ring -> ring drag
+    if (r){
       activeRing = r;
       dragStartY = e.clientY;
       dragStartIndex = r.userData.index;
@@ -583,11 +583,11 @@
   renderer.domElement.addEventListener("pointerup", () => { activeRing = null; orbiting = false; });
   renderer.domElement.addEventListener("pointercancel", () => { activeRing = null; orbiting = false; });
 
-  // Wheel: if over unlocked ring -> rotate it, else zoom camera
+  // Wheel: if over ring -> rotate it, else zoom camera
   renderer.domElement.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = pickRing(e);
-    if (r && r.userData.ringIndex < progress){
+    if (r){
       applyRingIndex(r, r.userData.index + (e.deltaY > 0 ? 1 : -1));
       return;
     }
