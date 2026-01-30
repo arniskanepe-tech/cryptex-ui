@@ -408,25 +408,26 @@
       const tileH     = ringMidH * 0.92;       // along ring axis (x)
       const tileW     = (2 * Math.PI * tileBandR) / tileCount * 0.92; // around circumference
 
-      const tileGeo = new THREE.BoxGeometry(tileH, tileW, tileT);
+      const tileGeo = new THREE.BoxGeometry(tileH, tileW, tileT); // (axial, tangential, radial)
 
       for (let j = 0; j < tileCount; j++) {
         const ch = ALPHABET[j];
         const tile = new THREE.Mesh(tileGeo, getTileMaterial(ch));
         tile.castShadow = true;
 
-        // Place tile on the cylinder surface in the ring's local space (axis = X)
+        // Wrap tile around the ring: use a pivot rotated around X (ring axis)
         const a = j * tileStep;
+        const pivot = new THREE.Object3D();
+        pivot.rotation.x = a;
 
-        tile.position.set(
-          0,
-          (tileBandR + tileT/2 + tileLift) * Math.cos(a),
-          (tileBandR + tileT/2 + tileLift) * Math.sin(a)
-        );
+        // Put the tile slightly above the ring surface in pivot local space
+        tile.position.set(0, tileBandR + tileT/2 + tileLift, 0);
 
-        // Face outward: look at ring center then flip (so front points out)
-        tile.lookAt(0, 0, 0);
-        tile.rotateY(Math.PI);        // make the textured face point outward
+        // Make the tile face outward (tile front = +Z -> outward = +Y at angle 0)
+        tile.rotation.x = -Math.PI / 2;
+
+        pivot.add(tile);
+        g.add(pivot);
 
         // Allow raycast to select ring group from tiles too
         tile.userData.parentRing = g;
