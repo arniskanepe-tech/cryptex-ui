@@ -150,11 +150,97 @@
   }
 
   const { colorTex: letterTex, bumpTex: letterBump } = makeLetterTextures();
+  // --- Raised "letter tiles" materials (each letter on its own mini-plate) ---
+  const _tileMatCache = new Map();
+  function getTileMaterial(ch){
+    if (_tileMatCache.has(ch)) return _tileMatCache.get(ch);
+
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = S; c.height = S;
+    const ctx = c.getContext("2d");
+
+    // brass plate base
+    const g = ctx.createLinearGradient(0, 0, 0, S);
+    g.addColorStop(0.0, "#f7e7bf");
+    g.addColorStop(0.45, "#c99949");
+    g.addColorStop(1.0, "#fff1cf");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,S,S);
+
+    // border + subtle bevel lines
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.strokeRect(16,16,S-32,S-32);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.strokeRect(22,22,S-44,S-44);
+
+    // letter
+    ctx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#1a1208";
+    ctx.shadowColor = "rgba(255,255,255,0.35)";
+    ctx.shadowOffsetY = 2;
+    ctx.fillText(ch, S/2, S/2 + 8);
+    ctx.shadowColor = "transparent";
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 8;
+    tex.needsUpdate = true;
+
+    // bump: make the border + letter feel raised
+    const bc = document.createElement("canvas");
+    bc.width = S; bc.height = S;
+    const btx = bc.getContext("2d");
+    btx.fillStyle = "#000";
+    btx.fillRect(0,0,S,S);
+    btx.filter = "blur(2.2px)";
+    btx.fillStyle = "#fff";
+    btx.globalAlpha = 0.9;
+    btx.fillRect(18,18,S-36,S-36); // plate body
+    btx.globalAlpha = 1.0;
+
+    // raised border
+    btx.strokeStyle = "#fff";
+    btx.lineWidth = 18;
+    btx.strokeRect(18,18,S-36,S-36);
+
+    // raised letter
+    btx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    btx.textAlign = "center";
+    btx.textBaseline = "middle";
+    btx.fillStyle = "#fff";
+    btx.globalAlpha = 0.85;
+    btx.fillText(ch, S/2, S/2 + 8);
+    btx.globalAlpha = 0.25;
+    btx.fillText(ch, S/2 + 2, S/2 + 10);
+    btx.globalAlpha = 1.0;
+    btx.filter = "none";
+
+    const bump = new THREE.CanvasTexture(bc);
+    bump.anisotropy = 8;
+    bump.needsUpdate = true;
+
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex,
+      bumpMap: bump,
+      bumpScale: 0.12,
+      metalness: 0.35,
+      roughness: 0.38
+    });
+
+    _tileMatCache.set(ch, mat);
+    return mat;
+  }
+
+
 
   const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, metalness: 0.9, roughness: 0.35 });
   const capMat   = new THREE.MeshStandardMaterial({ color: 0xd6b56b, metalness: 0.98, roughness: 0.22 });
   const lipMat   = new THREE.MeshStandardMaterial({ color: 0xb89345, metalness: 0.98, roughness: 0.20 });
-  const ringMat  = new THREE.MeshStandardMaterial({ map: letterTex, bumpMap: letterBump, bumpScale: 0.065, metalness: 0.25, roughness: 0.32 });
+  const ringMat  = new THREE.MeshStandardMaterial({ color: 0xd6b36d, metalness: 0.55, roughness: 0.35 }); // base ring band (no printed strip)
   const hubMat   = new THREE.MeshStandardMaterial({ color: 0x1b140d, metalness: 0.88, roughness: 0.45 });
 
   let cryptexGroup = null;
@@ -310,6 +396,43 @@
       hub.rotation.z = Math.PI/2;
       hub.userData.parentRing = g;
       g.add(hub);
+
+
+      // Raised letter tiles around the ring (each letter on its own mini-plate)
+      const tileCount = ALPHABET.length;
+      const tileStep = (Math.PI * 2) / tileCount;
+
+      const tileBandR = ringRadius * 1.015;     // tiles sit slightly above the band
+      const tileLift  = 0.010;
+      const tileT     = 0.070;                 // plate thickness (radial)
+      const tileH     = ringMidH * 0.92;       // along ring axis (x)
+      const tileW     = (2 * Math.PI * tileBandR) / tileCount * 0.92; // around circumference
+
+      const tileGeo = new THREE.BoxGeometry(tileH, tileW, tileT);
+
+      for (let j = 0; j < tileCount; j++) {
+        const ch = ALPHABET[j];
+        const tile = new THREE.Mesh(tileGeo, getTileMaterial(ch));
+        tile.castShadow = true;
+
+        // Place tile on the cylinder surface in the ring's local space (axis = X)
+        const a = j * tileStep;
+
+        tile.position.set(
+          0,
+          (tileBandR + tileT/2 + tileLift) * Math.cos(a),
+          (tileBandR + tileT/2 + tileLift) * Math.sin(a)
+        );
+
+        // Face outward: look at ring center then flip (so front points out)
+        tile.lookAt(0, 0, 0);
+        tile.rotateY(Math.PI);        // make the textured face point outward
+
+        // Allow raycast to select ring group from tiles too
+        tile.userData.parentRing = g;
+
+        g.add(tile);
+      }
 
       g.userData.index = 0;
       g.userData.ringIndex = i;
