@@ -403,7 +403,7 @@
       const tileStep = (Math.PI * 2) / tileCount;
 
       const tileBandR = ringRadius * 1.015;     // tiles sit slightly above the band
-      const tileLift  = 0.010;
+      const tileLift  = 0.030;
       const tileT     = 0.070;                 // plate thickness (radial)
       const tileH     = ringMidH * 0.92;       // along ring axis (x)
       const tileW     = (2 * Math.PI * tileBandR) / tileCount * 0.92; // around circumference
@@ -431,8 +431,6 @@
 
         // Allow raycast to select ring group from tiles too
         tile.userData.parentRing = g;
-
-        g.add(tile);
       }
 
       g.userData.index = 0;
