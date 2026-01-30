@@ -167,7 +167,7 @@
 
     const ringRadius = 1.52; // larger rings to match caps
     const ringHeight = 0.55;
-    const ringGap = 0.03; // micro gap
+    const ringGap = 0.07; // visible micro gap (so rings don't merge into one block)
     const bodyLen = ringsCount * (ringHeight + ringGap) + 1.3;
     // Mechanical core (inner rod) instead of a full outer tube
     const coreRod = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, bodyLen + 2.2, 32, 1, false), hubMat);
@@ -195,18 +195,23 @@
     capR.castShadow = true;
     cryptexGroup.add(capR);
 
-    const ringGeo = new THREE.CylinderGeometry(ringRadius, ringRadius, ringHeight, 56, 1, true);
+    const ringMidH = ringHeight - 0.10;   // the textured band is slightly inset
+    const lipT = 0.05;                   // lip thickness per side (total ~0.10)
+    const midR = ringRadius * 0.985;     // slightly smaller so lips read as edges
+    const lipR = ringRadius * 1.02;      // proud edge catches highlights
 
-    // Ring detailing (mechanical feel)
-    const lipT = 0.06;                      // thickness of the ring edge
-    const lipR = ringRadius * 1.01;         // slightly proud edge catches highlights
-    const spacerT = Math.max(0.012, ringGap * 0.9); // thin spacer between rings
-    const spacerR = ringRadius * 1.005;
-    // Spacers between rings (micro gap becomes a real part)
+    const midGeo = new THREE.CylinderGeometry(midR, midR, ringMidH, 64, 1, true);
+    const lipGeo = new THREE.CylinderGeometry(lipR, lipR, lipT, 64, 1, false);
+
+    // Spacer rings between symbol-rings (physical separators)
+    const spacerT = Math.max(0.03, ringGap * 0.7);
+    const spacerR = ringRadius * 1.01;
+    const spacerMat = metalMat; // darker separator to emphasize splits
+
     for (let i = 0; i < ringsCount - 1; i++) {
       const spacer = new THREE.Mesh(
         new THREE.CylinderGeometry(spacerR, spacerR, spacerT, 56, 1, false),
-        hubMat
+        spacerMat
       );
       spacer.rotation.z = Math.PI/2;
       const ringCenterX = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
@@ -215,47 +220,50 @@
       cryptexGroup.add(spacer);
     }
 
-
-
     for (let i=0;i<ringsCount;i++){
-      const r = new THREE.Mesh(ringGeo, ringMat);
-      r.castShadow = true;
+      // Use a Group so we can build a "real" ring: mid band + 2 lips + hub
+      const g = new THREE.Group();
       const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
-      r.position.set(x, 0, 0);
-      r.rotation.z = Math.PI/2;
+      g.position.set(x, 0, 0);
+      g.rotation.z = Math.PI/2;
 
-      // Inner hub (bushing) gives mechanical depth and lets raycast hit the inside too
+      // Textured mid band (this is where letters live)
+      const mid = new THREE.Mesh(midGeo, ringMat);
+      mid.castShadow = true;
+      mid.userData.parentRing = g;
+      g.add(mid);
+
+      // Edge lips (metal) — makes each ring clearly separate
+      const lipA = new THREE.Mesh(lipGeo, capMat);
+      lipA.rotation.z = Math.PI/2;
+      lipA.position.x = -(ringHeight/2 - lipT/2);
+      lipA.castShadow = true;
+      lipA.userData.parentRing = g;
+
+      const lipB = new THREE.Mesh(lipGeo, capMat);
+      lipB.rotation.z = Math.PI/2;
+      lipB.position.x = +(ringHeight/2 - lipT/2);
+      lipB.castShadow = true;
+      lipB.userData.parentRing = g;
+
+      g.add(lipA);
+      g.add(lipB);
+
+      // Inner hub (bushing)
       const hub = new THREE.Mesh(
         new THREE.CylinderGeometry(ringRadius * 0.58, ringRadius * 0.58, ringHeight * 0.96, 32, 1, false),
         hubMat
       );
       hub.castShadow = true;
       hub.rotation.z = Math.PI/2;
-      hub.userData.parentRing = r;
-      r.add(hub);
+      hub.userData.parentRing = g;
+      g.add(hub);
 
-      // Edge lips (makes each ring feel like a separate part)
-      const lipGeo = new THREE.CylinderGeometry(lipR, lipR, lipT, 56, 1, false);
+      g.userData.index = 0;
+      g.userData.ringIndex = i;
 
-      const lipA = new THREE.Mesh(lipGeo, capMat);
-      lipA.rotation.z = Math.PI/2;
-      lipA.position.x = -(ringHeight/2 - lipT/2);
-      lipA.castShadow = true;
-      lipA.userData.parentRing = r;
-
-      const lipB = new THREE.Mesh(lipGeo, capMat);
-      lipB.rotation.z = Math.PI/2;
-      lipB.position.x = +(ringHeight/2 - lipT/2);
-      lipB.castShadow = true;
-      lipB.userData.parentRing = r;
-
-      r.add(lipA);
-      r.add(lipB);
-
-      r.userData.index = 0;
-      r.userData.ringIndex = i;
-      cryptexGroup.add(r);
-      rings.push(r);
+      cryptexGroup.add(g);
+      rings.push(g);
     }
 
     cryptexGroup.rotation.y = -0.35;
