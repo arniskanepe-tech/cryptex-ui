@@ -165,12 +165,12 @@
     rings = [];
     cryptexGroup = new THREE.Group();
 
-    const ringRadius = 1.05;
+    const ringRadius = 1.52; // larger rings to match caps
     const ringHeight = 0.55;
-    const ringGap = 0.18;
+    const ringGap = 0.03; // micro gap
     const bodyLen = ringsCount * (ringHeight + ringGap) + 1.3;
     // Mechanical core (inner rod) instead of a full outer tube
-    const coreRod = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, bodyLen + 2.2, 32, 1, false), hubMat);
+    const coreRod = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, bodyLen + 2.2, 32, 1, false), hubMat);
     coreRod.rotation.z = Math.PI/2;
     coreRod.castShadow = true;
     cryptexGroup.add(coreRod);
@@ -196,6 +196,27 @@
     cryptexGroup.add(capR);
 
     const ringGeo = new THREE.CylinderGeometry(ringRadius, ringRadius, ringHeight, 56, 1, true);
+
+    // Ring detailing (mechanical feel)
+    const lipT = 0.06;                      // thickness of the ring edge
+    const lipR = ringRadius * 1.01;         // slightly proud edge catches highlights
+    const spacerT = Math.max(0.012, ringGap * 0.9); // thin spacer between rings
+    const spacerR = ringRadius * 1.005;
+    // Spacers between rings (micro gap becomes a real part)
+    for (let i = 0; i < ringsCount - 1; i++) {
+      const spacer = new THREE.Mesh(
+        new THREE.CylinderGeometry(spacerR, spacerR, spacerT, 56, 1, false),
+        hubMat
+      );
+      spacer.rotation.z = Math.PI/2;
+      const ringCenterX = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
+      spacer.position.set(ringCenterX + (ringHeight + ringGap)/2, 0, 0);
+      spacer.castShadow = true;
+      cryptexGroup.add(spacer);
+    }
+
+
+
     for (let i=0;i<ringsCount;i++){
       const r = new THREE.Mesh(ringGeo, ringMat);
       r.castShadow = true;
@@ -212,6 +233,24 @@
       hub.rotation.z = Math.PI/2;
       hub.userData.parentRing = r;
       r.add(hub);
+
+      // Edge lips (makes each ring feel like a separate part)
+      const lipGeo = new THREE.CylinderGeometry(lipR, lipR, lipT, 56, 1, false);
+
+      const lipA = new THREE.Mesh(lipGeo, capMat);
+      lipA.rotation.z = Math.PI/2;
+      lipA.position.x = -(ringHeight/2 - lipT/2);
+      lipA.castShadow = true;
+      lipA.userData.parentRing = r;
+
+      const lipB = new THREE.Mesh(lipGeo, capMat);
+      lipB.rotation.z = Math.PI/2;
+      lipB.position.x = +(ringHeight/2 - lipT/2);
+      lipB.castShadow = true;
+      lipB.userData.parentRing = r;
+
+      r.add(lipA);
+      r.add(lipB);
 
       r.userData.index = 0;
       r.userData.ringIndex = i;
