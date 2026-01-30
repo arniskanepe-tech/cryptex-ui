@@ -322,53 +322,13 @@
     coreRod.rotation.z = Math.PI/2;
     coreRod.castShadow = true;
     cryptexGroup.add(coreRod);
-    // Window frames (one per ring): each frame is a "rectangular bezel" with an aperture
-    // so you see exactly one tile on the reference line (like a real cryptex window).
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x17110a, metalness: 0.25, roughness: 0.92 });
-    const frameZ = ringRadius + 0.52;      // slightly above tiles
-    const frameDepth = 0.06;              // thickness (towards camera)
-    const winW = tileW * 1.10;            // aperture width along ring circumference
-    const winH = tileH * 1.05;            // aperture height along axis
-    const bezel = 0.12;                   // bezel thickness around aperture
 
-    // Back rail (thin) so frames feel mounted, but does not block the aperture
-    const rail = new THREE.Mesh(
-      new THREE.BoxGeometry(bodyLen * 0.90, 0.12, frameDepth),
-      frameMat
+    const windowPlate = new THREE.Mesh(
+      new THREE.PlaneGeometry(bodyLen*0.86, 0.62),
+      new THREE.MeshStandardMaterial({ color: 0x17110a, metalness: 0.2, roughness: 0.9 })
     );
-    rail.position.set(0, 0, frameZ);
-    cryptexGroup.add(rail);
-
-    function addWindowFrameAt(x){
-      const g = new THREE.Group();
-      g.position.set(x, 0, frameZ);
-
-      // Top / bottom bars
-      const top = new THREE.Mesh(new THREE.BoxGeometry(winH + 2*bezel, bezel, frameDepth), frameMat);
-      top.position.set(0, (winW/2) + (bezel/2), 0);
-      const bot = top.clone();
-      bot.position.y = -(winW/2) - (bezel/2);
-
-      // Left / right bars
-      const left = new THREE.Mesh(new THREE.BoxGeometry(bezel, winW + 2*bezel, frameDepth), frameMat);
-      left.position.set((winH/2) + (bezel/2), 0, 0);
-      const right = left.clone();
-      right.position.x = -(winH/2) - (bezel/2);
-
-      // IMPORTANT: frame must align with tile plane: tile width spans around the ring (local X),
-      // tile height spans along ring axis (local Y) in our setup.
-      // Our bars are made in XY plane, so we rotate frame group to match that plane.
-      // The tiles face outward (+Z), so the window frame stays unrotated.
-      g.add(top, bot, left, right);
-
-      cryptexGroup.add(g);
-    }
-
-    // Build frames at each ring's X position
-    for (const ring of rings){
-      addWindowFrameAt(ring.position.x);
-    }
-
+    windowPlate.position.set(0, 0, ringRadius + 0.50);
+    cryptexGroup.add(windowPlate);
 
     const capGeo = new THREE.CylinderGeometry(1.68, 1.68, 0.85, 56);
     const capL = new THREE.Mesh(capGeo, capMat);
