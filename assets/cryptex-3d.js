@@ -280,13 +280,45 @@
 
   function updateReadout(){
     if (!readoutTiles || readoutTiles.length === 0) return;
+
+    // Cast a ray from each readout tile back toward the rings and pick the
+    // real raised tile that sits "under" the window. This guarantees the
+    // readout matches what the player sees on the rotating ring.
+    const dir = new THREE.Vector3(0, 0, -1);
+    const q = new THREE.Quaternion();
+
+    // Window faces +Z in cryptexGroup local space, so ray goes -Z
+    cryptexGroup.getWorldQuaternion(q);
+    dir.applyQuaternion(q).normalize();
+
+    const from = new THREE.Vector3();
+
     for (let i = 0; i < readoutTiles.length; i++){
       const ring = rings[i];
       if (!ring) continue;
-      const ch = ALPHABET[ring.userData.index] || "?";
-      const tex = makeGlyphTexture(ch);
 
       const tile = readoutTiles[i];
+      tile.getWorldPosition(from);
+
+      let ch = null;
+
+      const candidates = ring.userData.tileMeshes || [];
+      if (candidates.length){
+        raycaster.set(from, dir);
+        const hits = raycaster.intersectObjects(candidates, true);
+        if (hits && hits.length){
+          const obj = hits[0].object;
+          if (obj && obj.userData && obj.userData.ch) ch = obj.userData.ch;
+        }
+      }
+
+      // Fallback (should rarely happen)
+      if (!ch) ch = ALPHABET[ring.userData.index] || "?";
+
+      const idx = ALPHABET.indexOf(ch);
+      if (idx >= 0) ring.userData.index = idx;
+
+      const tex = makeGlyphTexture(ch);
       const mat = tile.material;
       mat.map = tex.color;
       mat.needsUpdate = true;
@@ -478,10 +510,14 @@
 
       const tileGeo = new THREE.BoxGeometry(tileW, tileH, tileT); // (axial, tangential, radial)
 
+      const tileMeshes = [];
       for (let j = 0; j < tileCount; j++) {
         const ch = ALPHABET[j];
         const tile = new THREE.Mesh(tileGeo, getTileMaterials(ch));
         tile.castShadow = true;
+
+        // Keep reference so we can "read" the tile that is under the window
+        tile.userData.ch = ch;
 
         // Wrap tile around the ring: use a pivot rotated around X (ring axis)
         const a = j * tileStep;
@@ -499,7 +535,10 @@
 
         // Allow raycast to select ring group from tiles too
         tile.userData.parentRing = g;
+        tileMeshes.push(tile);
       }
+
+      g.userData.tileMeshes = tileMeshes;
 
       g.userData.index = 0;
       g.userData.ringIndex = i;
