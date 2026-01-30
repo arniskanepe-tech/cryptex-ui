@@ -418,7 +418,7 @@
       const tileH     = ringMidH * 0.92;       // along ring axis (x)
       const tileW     = (2 * Math.PI * tileBandR) / tileCount * 0.92; // around circumference
 
-      const tileGeo = new THREE.BoxGeometry(tileH, tileW, tileT); // (axial, tangential, radial)
+      const tileGeo = new THREE.BoxGeometry(tileW, tileH, tileT); // (axial, tangential, radial)
 
       for (let j = 0; j < tileCount; j++) {
         const ch = ALPHABET[j];
@@ -428,7 +428,7 @@
         // Wrap tile around the ring: use a pivot rotated around X (ring axis)
         const a = j * tileStep;
         const pivot = new THREE.Object3D();
-        pivot.rotation.x = a;
+        pivot.rotation.y = a;
 
         // Put the tile above the ring surface in pivot local space (radial = +Z)
         // This way pivot.rotation.x wraps tiles around the ring correctly.
