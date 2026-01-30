@@ -50,7 +50,8 @@
   ground.receiveShadow = true;
   scene.add(ground);
 
-  function makeLetterTexture(){
+  function makeLetterTextures(){
+    // Color texture (gold-ish band + printed letters)
     const canvas = document.createElement("canvas");
     const W = 2048, H = 256;
     canvas.width = W; canvas.height = H;
@@ -63,6 +64,7 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,W,H);
 
+    // cell dividers (visible borders)
     ctx.globalAlpha = 0.30;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
@@ -70,8 +72,8 @@
     for (let i=0;i<ALPHABET.length;i++){
       const x = Math.round(i*cellW);
       ctx.beginPath();
-      ctx.moveTo(x, 26);
-      ctx.lineTo(x, H-26);
+      ctx.moveTo(x, 22);
+      ctx.lineTo(x, H-22);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -90,19 +92,69 @@
       ctx.shadowColor = "transparent";
     }
 
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    tex.anisotropy = 8;
-    tex.needsUpdate = true;
-    return tex;
+    const colorTex = new THREE.CanvasTexture(canvas);
+    colorTex.wrapS = THREE.RepeatWrapping;
+    colorTex.wrapT = THREE.ClampToEdgeWrapping;
+    colorTex.anisotropy = 8;
+    colorTex.needsUpdate = true;
+
+    // Bump texture (fake relief): borders + letters become height
+    const bumpCanvas = document.createElement("canvas");
+    bumpCanvas.width = W; bumpCanvas.height = H;
+    const btx = bumpCanvas.getContext("2d");
+
+    btx.fillStyle = "#000";
+    btx.fillRect(0,0,W,H);
+
+    // Slightly blurred "height" makes light catch edges
+    btx.filter = "blur(2.2px)";
+    btx.globalAlpha = 1.0;
+
+    // Stronger borders in bump so each cell has a visible rim
+    btx.strokeStyle = "#fff";
+    btx.lineWidth = 10;
+    for (let i=0;i<ALPHABET.length;i++){
+      const x = Math.round(i*cellW);
+      btx.beginPath();
+      btx.moveTo(x, 18);
+      btx.lineTo(x, H-18);
+      btx.stroke();
+    }
+
+    // Letters in bump (raised/engraved feel)
+    btx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    btx.textAlign = "center";
+    btx.textBaseline = "middle";
+    btx.fillStyle = "#fff";
+
+    for (let i=0;i<ALPHABET.length;i++){
+      const x = (i + 0.5) * cellW;
+      const y = H/2 + 8;
+      // tiny offset to create an "emboss" gradient
+      btx.globalAlpha = 0.85;
+      btx.fillText(ALPHABET[i], x, y);
+      btx.globalAlpha = 0.25;
+      btx.fillText(ALPHABET[i], x+2, y+2);
+      btx.globalAlpha = 1.0;
+    }
+
+    btx.filter = "none";
+
+    const bumpTex = new THREE.CanvasTexture(bumpCanvas);
+    bumpTex.wrapS = THREE.RepeatWrapping;
+    bumpTex.wrapT = THREE.ClampToEdgeWrapping;
+    bumpTex.anisotropy = 8;
+    bumpTex.needsUpdate = true;
+
+    return { colorTex, bumpTex };
   }
 
-  const letterTex = makeLetterTexture();
+  const { colorTex: letterTex, bumpTex: letterBump } = makeLetterTextures();
 
   const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, metalness: 0.9, roughness: 0.35 });
   const capMat   = new THREE.MeshStandardMaterial({ color: 0xd6b56b, metalness: 0.98, roughness: 0.22 });
-  const ringMat  = new THREE.MeshStandardMaterial({ map: letterTex, metalness: 0.55, roughness: 0.35 });
+  const lipMat   = new THREE.MeshStandardMaterial({ color: 0xb89345, metalness: 0.98, roughness: 0.20 });
+  const ringMat  = new THREE.MeshStandardMaterial({ map: letterTex, bumpMap: letterBump, bumpScale: 0.065, metalness: 0.25, roughness: 0.32 });
   const hubMat   = new THREE.MeshStandardMaterial({ color: 0x1b140d, metalness: 0.88, roughness: 0.45 });
 
   let cryptexGroup = null;
@@ -206,7 +258,7 @@
     // Spacer rings between symbol-rings (physical separators)
     const spacerT = Math.max(0.03, ringGap * 0.7);
     const spacerR = ringRadius * 1.01;
-    const spacerMat = metalMat; // darker separator to emphasize splits
+    const spacerMat = new THREE.MeshStandardMaterial({ color: 0x070707, metalness: 0.15, roughness: 0.9 }); // matte separators to emphasize splits
 
     for (let i = 0; i < ringsCount - 1; i++) {
       const spacer = new THREE.Mesh(
@@ -234,13 +286,13 @@
       g.add(mid);
 
       // Edge lips (metal) — makes each ring clearly separate
-      const lipA = new THREE.Mesh(lipGeo, capMat);
+      const lipA = new THREE.Mesh(lipGeo, lipMat);
       lipA.rotation.z = Math.PI/2;
       lipA.position.x = -(ringHeight/2 - lipT/2);
       lipA.castShadow = true;
       lipA.userData.parentRing = g;
 
-      const lipB = new THREE.Mesh(lipGeo, capMat);
+      const lipB = new THREE.Mesh(lipGeo, lipMat);
       lipB.rotation.z = Math.PI/2;
       lipB.position.x = +(ringHeight/2 - lipT/2);
       lipB.castShadow = true;
