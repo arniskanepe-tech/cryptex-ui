@@ -1,5 +1,73 @@
 (() => {
   const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  // Per-letter texture (color + bump) for raised tiles
+  const _glyphCache = new Map();
+  function makeGlyphTexture(ch){
+    if (_glyphCache.has(ch)) return _glyphCache.get(ch);
+
+    const W = 256, H = 256;
+
+    // COLOR
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, "#f7f0dc");
+    bg.addColorStop(0.5, "#dbcaa5");
+    bg.addColorStop(1, "#f8f3e6");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // Inner border
+    ctx.strokeStyle = "rgba(0,0,0,0.18)";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(10,10,W-20,H-20);
+
+    // Letter
+    ctx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#21160a";
+    ctx.fillText(ch, W/2, H/2 + 6);
+
+    const color = new THREE.CanvasTexture(c);
+    color.anisotropy = 8;
+    color.needsUpdate = true;
+
+    // BUMP (emboss)
+    const b = document.createElement("canvas");
+    b.width = W; b.height = H;
+    const btx = b.getContext("2d");
+    btx.fillStyle = "#000";
+    btx.fillRect(0,0,W,H);
+
+    btx.filter = "blur(2.2px)";
+    btx.strokeStyle = "#fff";
+    btx.lineWidth = 18;
+    btx.strokeRect(14,14,W-28,H-28);
+
+    btx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    btx.textAlign = "center";
+    btx.textBaseline = "middle";
+    btx.fillStyle = "#fff";
+    btx.globalAlpha = 0.9;
+    btx.fillText(ch, W/2, H/2 + 6);
+    btx.globalAlpha = 0.25;
+    btx.fillText(ch, W/2 + 2, H/2 + 8);
+    btx.globalAlpha = 1.0;
+    btx.filter = "none";
+
+    const bump = new THREE.CanvasTexture(b);
+    bump.anisotropy = 8;
+    bump.needsUpdate = true;
+
+    const out = { color, bump };
+    _glyphCache.set(ch, out);
+    return out;
+  }
+
   const STEP = (Math.PI * 2) / ALPHABET.length;
 
   const ringsCountEl = document.getElementById("ringsCount");
@@ -152,84 +220,26 @@
   const { colorTex: letterTex, bumpTex: letterBump } = makeLetterTextures();
   // --- Raised "letter tiles" materials (each letter on its own mini-plate) ---
   const _tileMatCache = new Map();
-  function getTileMaterial(ch){
-    if (_tileMatCache.has(ch)) return _tileMatCache.get(ch);
-
-    const S = 256;
-    const c = document.createElement("canvas");
-    c.width = S; c.height = S;
-    const ctx = c.getContext("2d");
-
-    // brass plate base
-    const g = ctx.createLinearGradient(0, 0, 0, S);
-    g.addColorStop(0.0, "#f7e7bf");
-    g.addColorStop(0.45, "#c99949");
-    g.addColorStop(1.0, "#fff1cf");
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,S,S);
-
-    // border + subtle bevel lines
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.strokeRect(16,16,S-32,S-32);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(255,255,255,0.22)";
-    ctx.strokeRect(22,22,S-44,S-44);
-
-    // letter
-    ctx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#1a1208";
-    ctx.shadowColor = "rgba(255,255,255,0.35)";
-    ctx.shadowOffsetY = 2;
-    ctx.fillText(ch, S/2, S/2 + 8);
-    ctx.shadowColor = "transparent";
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.anisotropy = 8;
-    tex.needsUpdate = true;
-
-    // bump: make the border + letter feel raised
-    const bc = document.createElement("canvas");
-    bc.width = S; bc.height = S;
-    const btx = bc.getContext("2d");
-    btx.fillStyle = "#000";
-    btx.fillRect(0,0,S,S);
-    btx.filter = "blur(2.2px)";
-    btx.fillStyle = "#fff";
-    btx.globalAlpha = 0.9;
-    btx.fillRect(18,18,S-36,S-36); // plate body
-    btx.globalAlpha = 1.0;
-
-    // raised border
-    btx.strokeStyle = "#fff";
-    btx.lineWidth = 18;
-    btx.strokeRect(18,18,S-36,S-36);
-
-    // raised letter
-    btx.font = "900 150px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    btx.textAlign = "center";
-    btx.textBaseline = "middle";
-    btx.fillStyle = "#fff";
-    btx.globalAlpha = 0.85;
-    btx.fillText(ch, S/2, S/2 + 8);
-    btx.globalAlpha = 0.25;
-    btx.fillText(ch, S/2 + 2, S/2 + 10);
-    btx.globalAlpha = 1.0;
-    btx.filter = "none";
-
-    const bump = new THREE.CanvasTexture(bc);
-    bump.anisotropy = 8;
-    bump.needsUpdate = true;
-
-    const mat = new THREE.MeshStandardMaterial({
-      map: tex,
-      bumpMap: bump,
-      bumpScale: 0.12,
-      metalness: 0.35,
-      roughness: 0.38
+  
+  function getTileMaterials(ch){
+    // Outward face (+Z) gets the letter; other faces are plain.
+    const letter = makeGlyphTexture(ch);
+    const faceMat = new THREE.MeshStandardMaterial({
+      map: letter.color,
+      bumpMap: letter.bump,
+      bumpScale: 0.08,
+      metalness: 0.10,
+      roughness: 0.55
     });
+    const sideMat = new THREE.MeshStandardMaterial({
+      color: 0xd8d1c2,
+      metalness: 0.06,
+      roughness: 0.75
+    });
+    // BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z
+    return [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
+  }
+);
 
     _tileMatCache.set(ch, mat);
     return mat;
@@ -412,7 +422,7 @@
 
       for (let j = 0; j < tileCount; j++) {
         const ch = ALPHABET[j];
-        const tile = new THREE.Mesh(tileGeo, getTileMaterial(ch));
+        const tile = new THREE.Mesh(tileGeo, getTileMaterials(ch));
         tile.castShadow = true;
 
         // Wrap tile around the ring: use a pivot rotated around X (ring axis)
@@ -420,11 +430,11 @@
         const pivot = new THREE.Object3D();
         pivot.rotation.x = a;
 
-        // Put the tile slightly above the ring surface in pivot local space
-        tile.position.set(0, tileBandR + tileT/2 + tileLift, 0);
+        // Put the tile above the ring surface in pivot local space (radial = +Z)
+        // This way pivot.rotation.x wraps tiles around the ring correctly.
+        tile.position.set(0, 0, tileBandR + tileT/2 + tileLift);
 
-        // Make the tile face outward (tile front = +Z -> outward = +Y at angle 0)
-        tile.rotation.x = -Math.PI / 2;
+        // Face outward: BoxGeometry's +Z face is the "front", so no extra rotation is needed.
 
         pivot.add(tile);
         g.add(pivot);
