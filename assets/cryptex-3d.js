@@ -1,5 +1,7 @@
 (() => {
-  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const DIGITS = "0123456789";
+  const ALPHANUM = LETTERS + DIGITS;
 
   // Per-letter texture (color + bump) for raised tiles
   const _glyphCache = new Map();
@@ -68,7 +70,7 @@
     return out;
   }
 
-  const STEP = (Math.PI * 2) / ALPHABET.length;
+  function mod(n,m){ return ((n % m) + m) % m; }
 
   const ringsCountEl = document.getElementById("ringsCount");
   const solutionEl = document.getElementById("solution");
@@ -136,8 +138,8 @@
     ctx.globalAlpha = 0.30;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
-    const cellW = W / ALPHABET.length;
-    for (let i=0;i<ALPHABET.length;i++){
+    const cellW = W / ALPHANUM.length;
+    for (let i=0;i<ALPHANUM.length;i++){
       const x = Math.round(i*cellW);
       ctx.beginPath();
       ctx.moveTo(x, 22);
@@ -151,12 +153,12 @@
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#1a1208";
 
-    for (let i=0;i<ALPHABET.length;i++){
+    for (let i=0;i<ALPHANUM.length;i++){
       const x = (i + 0.5) * cellW;
       const y = H/2 + 8;
       ctx.shadowColor = "rgba(255,255,255,0.35)";
       ctx.shadowOffsetY = 2;
-      ctx.fillText(ALPHABET[i], x, y);
+      ctx.fillText(ALPHANUM[i], x, y);
       ctx.shadowColor = "transparent";
     }
 
@@ -181,7 +183,7 @@
     // Stronger borders in bump so each cell has a visible rim
     btx.strokeStyle = "#fff";
     btx.lineWidth = 10;
-    for (let i=0;i<ALPHABET.length;i++){
+    for (let i=0;i<ALPHANUM.length;i++){
       const x = Math.round(i*cellW);
       btx.beginPath();
       btx.moveTo(x, 18);
@@ -195,14 +197,14 @@
     btx.textBaseline = "middle";
     btx.fillStyle = "#fff";
 
-    for (let i=0;i<ALPHABET.length;i++){
+    for (let i=0;i<ALPHANUM.length;i++){
       const x = (i + 0.5) * cellW;
       const y = H/2 + 8;
       // tiny offset to create an "emboss" gradient
       btx.globalAlpha = 0.85;
-      btx.fillText(ALPHABET[i], x, y);
+      btx.fillText(ALPHANUM[i], x, y);
       btx.globalAlpha = 0.25;
-      btx.fillText(ALPHABET[i], x+2, y+2);
+      btx.fillText(ALPHANUM[i], x+2, y+2);
       btx.globalAlpha = 1.0;
     }
 
@@ -275,7 +277,7 @@
     updateStatus();
   }
   function codeFromRings(){
-    return rings.map(r => ALPHABET[r.userData.index]).join("");
+    return rings.map(r => ALPHANUM[r.userData.index]).join("");
   }
 
   function updateReadout(){
@@ -307,7 +309,7 @@
       // If ring is mid-animation, show the intended target symbol (stable)
       if (ring.userData.anim && (now - ring.userData.anim.t0) < ring.userData.anim.dur){
         const ti = ring.userData.targetIndex ?? ring.userData.index ?? 0;
-        const ch = ALPHABET[((ti % ALPHABET.length) + ALPHABET.length) % ALPHABET.length] || "?";
+        const ch = ring.userData.charset[mod(ti, ring.userData.charset.length)] || "?";
         const tex = makeGlyphTexture(ch);
         const mat = tile.material;
         mat.map = tex.color;
@@ -329,7 +331,7 @@
       }
 
       // Fallback (should rarely happen)
-      if (!ch) ch = ALPHABET[ring.userData.index] || "?";
+      if (!ch) ch = (ring.userData.charset ? ring.userData.charset[mod(ring.userData.index||0, ring.userData.charset.length)] : "?") || "?";
 
       const tex = makeGlyphTexture(ch);
       const mat = tile.material;
@@ -338,7 +340,7 @@
     }
   }
   function applyRingIndex(ring, idx){
-    idx = ((idx % ALPHABET.length) + ALPHABET.length) % ALPHABET.length;
+    idx = ((idx % ALPHANUM.length) + ALPHANUM.length) % ALPHANUM.length;
     const now = performance.now();
     // Small cooldown so symbols cannot "fly through" the window
     if (ring.userData.lockUntil && now < ring.userData.lockUntil) return;
@@ -427,7 +429,7 @@
     for (let i = 0; i < ringsCount; i++){
       const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
 
-      const tex = makeGlyphTexture(ALPHABET[0]);
+      const tex = makeGlyphTexture(ALPHANUM[0]);
       const mat = new THREE.MeshStandardMaterial({
         map: tex.color,
         metalness: 0.05,
@@ -526,8 +528,13 @@
       hub.visible = false;
 
 
-      // Raised letter tiles around the ring (each letter on its own mini-plate)
-      const tileCount = ALPHABET.length;
+      // Raised tiles around the ring (each glyph on its own mini-plate)
+      const sol = String(solutionEl.value || "").trim().toUpperCase();
+      const solCh = sol[i] || "A";
+      const isDigitRing = (solCh >= "0" && solCh <= "9");
+      const charset = isDigitRing ? DIGITS : LETTERS;
+
+      const tileCount = charset.length;
       const tileStep = (Math.PI * 2) / tileCount;
 
       const tileBandR = ringRadius * 1.015;     // tiles sit slightly above the band
@@ -540,7 +547,7 @@
 
       const tileMeshes = [];
       for (let j = 0; j < tileCount; j++) {
-        const ch = ALPHABET[j];
+        const ch = charset[j];
         const tile = new THREE.Mesh(tileGeo, getTileMaterials(ch));
         tile.castShadow = true;
 
@@ -567,6 +574,8 @@
       }
 
       g.userData.tileMeshes = tileMeshes;
+      g.userData.charset = charset;
+      g.userData.step = tileStep;
 
       g.userData.index = 0;
       g.userData.ringIndex = i;
