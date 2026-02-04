@@ -284,6 +284,11 @@
     // Cast a ray from each readout tile back toward the rings and pick the
     // real raised tile that sits "under" the window. This guarantees the
     // readout matches what the player sees on the rotating ring.
+    //
+    // Important: while a ring is animating (detent "click"), we show the target
+    // symbol to avoid flicker (ray can momentarily hit neighbor tiles mid-rotation).
+    const now = performance.now();
+
     const dir = new THREE.Vector3(0, 0, -1);
     const q = new THREE.Quaternion();
 
@@ -298,10 +303,21 @@
       if (!ring) continue;
 
       const tile = readoutTiles[i];
+
+      // If ring is mid-animation, show the intended target symbol (stable)
+      if (ring.userData.anim && (now - ring.userData.anim.t0) < ring.userData.anim.dur){
+        const ti = ring.userData.targetIndex ?? ring.userData.index ?? 0;
+        const ch = ALPHABET[((ti % ALPHABET.length) + ALPHABET.length) % ALPHABET.length] || "?";
+        const tex = makeGlyphTexture(ch);
+        const mat = tile.material;
+        mat.map = tex.color;
+        mat.needsUpdate = true;
+        continue;
+      }
+
       tile.getWorldPosition(from);
 
       let ch = null;
-
       const candidates = ring.userData.tileMeshes || [];
       if (candidates.length){
         raycaster.set(from, dir);
@@ -315,16 +331,12 @@
       // Fallback (should rarely happen)
       if (!ch) ch = ALPHABET[ring.userData.index] || "?";
 
-      const idx = ALPHABET.indexOf(ch);
-      if (idx >= 0) ring.userData.index = idx;
-
       const tex = makeGlyphTexture(ch);
       const mat = tile.material;
       mat.map = tex.color;
       mat.needsUpdate = true;
     }
   }
-
   function applyRingIndex(ring, idx){
     idx = ((idx % ALPHABET.length) + ALPHABET.length) % ALPHABET.length;
     const now = performance.now();
@@ -385,6 +397,7 @@
     coreRod.rotation.z = Math.PI/2;
     coreRod.castShadow = true;
     cryptexGroup.add(coreRod);
+    coreRod.visible = false; // hide dark inner rod (clean look)
 
     
     // ===== Window / Readout =====
@@ -658,18 +671,25 @@
   renderer.domElement.addEventListener("pointerup", () => { activeRing = null; orbiting = false; });
   renderer.domElement.addEventListener("pointercancel", () => { activeRing = null; orbiting = false; });
 
-  // Keyboard: control the last selected ring
+  // Keyboard: control the last selected ring (ArrowUp/ArrowDown)
+  function stepRing(ring, dir){
+    if (!ring) return;
+    const base = (ring.userData.targetIndex ?? ring.userData.index ?? 0);
+    applyRingIndex(ring, base + dir);
+  }
+
   window.addEventListener("keydown", (e) => {
     if (!lastSelectedRing) return;
 
     if (e.key === "ArrowUp"){
       e.preventDefault();
-      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) - 1);
+      stepRing(lastSelectedRing, +1);
     } else if (e.key === "ArrowDown"){
       e.preventDefault();
-      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) + 1);
+      stepRing(lastSelectedRing, -1);
     }
   }, { passive:false });
+
 
 
   // Wheel: if over ring -> rotate it, else zoom camera
