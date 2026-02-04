@@ -327,8 +327,17 @@
 
   function applyRingIndex(ring, idx){
     idx = ((idx % ALPHABET.length) + ALPHABET.length) % ALPHABET.length;
-    ring.userData.index = idx;
-    ring.rotation.x = -idx * STEP;
+    const now = performance.now();
+    // Small cooldown so symbols cannot "fly through" the window
+    if (ring.userData.lockUntil && now < ring.userData.lockUntil) return;
+    ring.userData.lockUntil = now + 120; // ms (click, click, click)
+
+    const from = ring.rotation.x;
+    const to = -idx * STEP;
+    ring.userData.targetIndex = idx;
+    ring.userData.index = idx; // logical index
+    ring.userData.anim = { from, to, t0: now, dur: 180 };
+    // One immediate update so readout reacts fast, then per-frame updates while animating
     updateReadout();
   }
 
@@ -497,6 +506,9 @@
       hub.userData.parentRing = g;
       g.add(hub);
 
+      // Hide dark hub disk (it was visually distracting when rings rotate)
+      hub.visible = false;
+
 
       // Raised letter tiles around the ring (each letter on its own mini-plate)
       const tileCount = ALPHABET.length;
@@ -579,6 +591,12 @@
     return obj.userData.parentRing || obj;}
 
   // Pointer
+  const DRAG_PX_PER_STEP = 42;   // bigger = slower
+  const DRAG_DEADZONE = 6;       // ignore tiny jitter
+
+  let lastSelectedRing = null;
+  let dragAccum = 0;
+
   renderer.domElement.addEventListener("pointerdown", (e) => {
     e.preventDefault();
 
@@ -587,30 +605,48 @@
     // If click hits a ring -> ring drag
     if (r){
       activeRing = r;
+      lastSelectedRing = r;
       dragStartY = e.clientY;
-      dragStartIndex = r.userData.index;
-      renderer.domElement.setPointerCapture?.(e.pointerId);
+      dragStartIndex = (typeof r.userData.targetIndex === "number") ? r.userData.targetIndex : (r.userData.index || 0);
+      dragAccum = 0;
       return;
     }
 
-    // Otherwise orbit whole object (no Shift needed)
+    // Otherwise orbit whole object
     if (cryptexGroup){
       orbiting = true;
       orbitStart.x = e.clientX;
       orbitStart.y = e.clientY;
       orbitStart.ry = cryptexGroup.rotation.y;
       orbitStart.rx = cryptexGroup.rotation.x;
-      renderer.domElement.setPointerCapture?.(e.pointerId);
     }
   }, { passive:false });
 
   renderer.domElement.addEventListener("pointermove", (e) => {
     if (activeRing){
+      // If pointer leaves the ring, stop dragging (prevents "ghost" dragging outside)
+      const hovered = pickRing(e);
+      if (hovered !== activeRing){
+        activeRing = null;
+        return;
+      }
+
       const dy = e.clientY - dragStartY;
-      const steps = Math.round(dy / 18);
-      applyRingIndex(activeRing, dragStartIndex - steps);
+
+      // Deadzone to prevent instant jump on click/tap jitter
+      if (Math.abs(dy) < DRAG_DEADZONE) return;
+
+      // Convert movement to stepped detents
+      const desiredSteps = Math.trunc((dy + (dy>0?DRAG_DEADZONE:-DRAG_DEADZONE)) / DRAG_PX_PER_STEP);
+
+      // Apply only when step count changes
+      const newIdx = dragStartIndex - desiredSteps;
+      if (newIdx !== activeRing.userData.index){
+        applyRingIndex(activeRing, newIdx);
+      }
       return;
     }
+
     if (orbiting && cryptexGroup){
       const dx = e.clientX - orbitStart.x;
       const dy = e.clientY - orbitStart.y;
@@ -621,6 +657,20 @@
 
   renderer.domElement.addEventListener("pointerup", () => { activeRing = null; orbiting = false; });
   renderer.domElement.addEventListener("pointercancel", () => { activeRing = null; orbiting = false; });
+
+  // Keyboard: control the last selected ring
+  window.addEventListener("keydown", (e) => {
+    if (!lastSelectedRing) return;
+
+    if (e.key === "ArrowUp"){
+      e.preventDefault();
+      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) - 1);
+    } else if (e.key === "ArrowDown"){
+      e.preventDefault();
+      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) + 1);
+    }
+  }, { passive:false });
+
 
   // Wheel: if over ring -> rotate it, else zoom camera
   renderer.domElement.addEventListener("wheel", (e) => {
@@ -655,8 +705,38 @@
 
   function animate(){
     requestAnimationFrame(animate);
+
+    let anyAnimating = false;
+
+    if (rings && rings.length){
+      const now = performance.now();
+      for (const r of rings){
+        const a = r?.userData?.anim;
+        if (!a) continue;
+
+        const u = Math.min(1, (now - a.t0) / a.dur);
+        // easeOutCubic
+        const t = 1 - Math.pow(1 - u, 3);
+        r.rotation.x = a.from + (a.to - a.from) * t;
+
+        if (u >= 1){
+          r.rotation.x = a.to;
+          r.userData.anim = null;
+        } else {
+          anyAnimating = true;
+        }
+      }
+    }
+
+    // Keep readout in sync with what is visually under the frame while dragging/animating
+    if (activeRing || anyAnimating){
+      updateReadout();
+    }
+
     renderer.render(scene, camera);
   }
+
+
 
   buildCryptex();
   animate();
