@@ -1,7 +1,7 @@
 (() => {
   const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const DIGITS = "0123456789";
-  const ALPHANUM = LETTERS + DIGITS;
+  const ALPHABET = LETTERS + DIGITS;
 
   // Per-letter texture (color + bump) for raised tiles
   const _glyphCache = new Map();
@@ -70,8 +70,6 @@
     return out;
   }
 
-  function mod(n,m){ return ((n % m) + m) % m; }
-
   const ringsCountEl = document.getElementById("ringsCount");
   const solutionEl = document.getElementById("solution");
   const rebuildBtn = document.getElementById("rebuild");
@@ -138,8 +136,8 @@
     ctx.globalAlpha = 0.30;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2;
-    const cellW = W / ALPHANUM.length;
-    for (let i=0;i<ALPHANUM.length;i++){
+    const cellW = W / ALPHABET.length;
+    for (let i=0;i<ALPHABET.length;i++){
       const x = Math.round(i*cellW);
       ctx.beginPath();
       ctx.moveTo(x, 22);
@@ -153,12 +151,12 @@
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#1a1208";
 
-    for (let i=0;i<ALPHANUM.length;i++){
+    for (let i=0;i<ALPHABET.length;i++){
       const x = (i + 0.5) * cellW;
       const y = H/2 + 8;
       ctx.shadowColor = "rgba(255,255,255,0.35)";
       ctx.shadowOffsetY = 2;
-      ctx.fillText(ALPHANUM[i], x, y);
+      ctx.fillText(ALPHABET[i], x, y);
       ctx.shadowColor = "transparent";
     }
 
@@ -183,7 +181,7 @@
     // Stronger borders in bump so each cell has a visible rim
     btx.strokeStyle = "#fff";
     btx.lineWidth = 10;
-    for (let i=0;i<ALPHANUM.length;i++){
+    for (let i=0;i<ALPHABET.length;i++){
       const x = Math.round(i*cellW);
       btx.beginPath();
       btx.moveTo(x, 18);
@@ -197,14 +195,14 @@
     btx.textBaseline = "middle";
     btx.fillStyle = "#fff";
 
-    for (let i=0;i<ALPHANUM.length;i++){
+    for (let i=0;i<ALPHABET.length;i++){
       const x = (i + 0.5) * cellW;
       const y = H/2 + 8;
       // tiny offset to create an "emboss" gradient
       btx.globalAlpha = 0.85;
-      btx.fillText(ALPHANUM[i], x, y);
+      btx.fillText(ALPHABET[i], x, y);
       btx.globalAlpha = 0.25;
-      btx.fillText(ALPHANUM[i], x+2, y+2);
+      btx.fillText(ALPHABET[i], x+2, y+2);
       btx.globalAlpha = 1.0;
     }
 
@@ -277,7 +275,7 @@
     updateStatus();
   }
   function codeFromRings(){
-    return rings.map(r => ALPHANUM[r.userData.index]).join("");
+    return rings.map(r => ALPHABET[r.userData.index]).join("");
   }
 
   function updateReadout(){
@@ -286,11 +284,6 @@
     // Cast a ray from each readout tile back toward the rings and pick the
     // real raised tile that sits "under" the window. This guarantees the
     // readout matches what the player sees on the rotating ring.
-    //
-    // Important: while a ring is animating (detent "click"), we show the target
-    // symbol to avoid flicker (ray can momentarily hit neighbor tiles mid-rotation).
-    const now = performance.now();
-
     const dir = new THREE.Vector3(0, 0, -1);
     const q = new THREE.Quaternion();
 
@@ -305,21 +298,10 @@
       if (!ring) continue;
 
       const tile = readoutTiles[i];
-
-      // If ring is mid-animation, show the intended target symbol (stable)
-      if (ring.userData.anim && (now - ring.userData.anim.t0) < ring.userData.anim.dur){
-        const ti = ring.userData.targetIndex ?? ring.userData.index ?? 0;
-        const ch = ring.userData.charset[mod(ti, ring.userData.charset.length)] || "?";
-        const tex = makeGlyphTexture(ch);
-        const mat = tile.material;
-        mat.map = tex.color;
-        mat.needsUpdate = true;
-        continue;
-      }
-
       tile.getWorldPosition(from);
 
       let ch = null;
+
       const candidates = ring.userData.tileMeshes || [];
       if (candidates.length){
         raycaster.set(from, dir);
@@ -331,7 +313,10 @@
       }
 
       // Fallback (should rarely happen)
-      if (!ch) ch = (ring.userData.charset ? ring.userData.charset[mod(ring.userData.index||0, ring.userData.charset.length)] : "?") || "?";
+      if (!ch) ch = ALPHABET[ring.userData.index] || "?";
+
+      const idx = ALPHABET.indexOf(ch);
+      if (idx >= 0) ring.userData.index = idx;
 
       const tex = makeGlyphTexture(ch);
       const mat = tile.material;
@@ -339,15 +324,18 @@
       mat.needsUpdate = true;
     }
   }
+
   function applyRingIndex(ring, idx){
-    idx = ((idx % ALPHANUM.length) + ALPHANUM.length) % ALPHANUM.length;
+    const n = ring.userData.count || ALPHABET.length;
+    idx = ((idx % n) + n) % n;
     const now = performance.now();
     // Small cooldown so symbols cannot "fly through" the window
     if (ring.userData.lockUntil && now < ring.userData.lockUntil) return;
     ring.userData.lockUntil = now + 120; // ms (click, click, click)
 
     const from = ring.rotation.x;
-    const to = -idx * STEP;
+    const step = ring.userData.step || ((Math.PI*2)/(ring.userData.count||ALPHABET.length));
+    const to = -idx * step;
     ring.userData.targetIndex = idx;
     ring.userData.index = idx; // logical index
     ring.userData.anim = { from, to, t0: now, dur: 180 };
@@ -386,6 +374,14 @@
     ringsCountEl.value = String(ringsCount);
     normalizeSolution(ringsCount);
 
+    // Build per-ring character sets based on the solution pattern
+    const sol = (solutionEl.value || "").toUpperCase();
+    const ringCharSets = [];
+    for (let i=0;i<ringsCount;i++){
+      const c = sol[i] || "A";
+      ringCharSets.push((c >= "0" && c <= "9") ? DIGITS : LETTERS);
+    }
+
     progress = 0;
     rings = [];
     cryptexGroup = new THREE.Group();
@@ -399,7 +395,6 @@
     coreRod.rotation.z = Math.PI/2;
     coreRod.castShadow = true;
     cryptexGroup.add(coreRod);
-    coreRod.visible = false; // hide dark inner rod (clean look)
 
     
     // ===== Window / Readout =====
@@ -429,7 +424,7 @@
     for (let i = 0; i < ringsCount; i++){
       const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
 
-      const tex = makeGlyphTexture(ALPHANUM[0]);
+      const tex = makeGlyphTexture(ALPHABET[0]);
       const mat = new THREE.MeshStandardMaterial({
         map: tex.color,
         metalness: 0.05,
@@ -491,28 +486,28 @@
 
       // Textured mid band (this is where letters live)
       const mid = new THREE.Mesh(midGeo, ringMat);
-      mid.visible = false; // hide dark band under tiles
       mid.castShadow = true;
       mid.userData.parentRing = g;
       g.add(mid);
+      mid.visible = false; // hide rotating band under tiles
 
       // Edge lips (metal) — makes each ring clearly separate
       const lipA = new THREE.Mesh(lipGeo, lipMat);
-      lipA.visible = false; // hide rotating lip
       lipA.rotation.z = Math.PI/2;
       lipA.position.x = -(ringHeight/2 - lipT/2);
       lipA.castShadow = true;
       lipA.userData.parentRing = g;
 
       const lipB = new THREE.Mesh(lipGeo, lipMat);
-      lipB.visible = false; // hide rotating lip
       lipB.rotation.z = Math.PI/2;
       lipB.position.x = +(ringHeight/2 - lipT/2);
       lipB.castShadow = true;
       lipB.userData.parentRing = g;
 
       g.add(lipA);
+      lipA.visible = false;
       g.add(lipB);
+      lipB.visible = false;
 
       // Inner hub (bushing)
       const hub = new THREE.Mesh(
@@ -528,14 +523,13 @@
       hub.visible = false;
 
 
-      // Raised tiles around the ring (each glyph on its own mini-plate)
-      const sol = String(solutionEl.value || "").trim().toUpperCase();
-      const solCh = sol[i] || "A";
-      const isDigitRing = (solCh >= "0" && solCh <= "9");
-      const charset = isDigitRing ? DIGITS : LETTERS;
-
+      // Raised letter tiles around the ring (each letter on its own mini-plate)
+      const charset = ringCharSets[i] || ALPHABET;
       const tileCount = charset.length;
       const tileStep = (Math.PI * 2) / tileCount;
+      g.userData.charset = charset;
+      g.userData.count = tileCount;
+      g.userData.step = tileStep;
 
       const tileBandR = ringRadius * 1.015;     // tiles sit slightly above the band
       const tileLift  = 0.030;
@@ -574,8 +568,6 @@
       }
 
       g.userData.tileMeshes = tileMeshes;
-      g.userData.charset = charset;
-      g.userData.step = tileStep;
 
       g.userData.index = 0;
       g.userData.ringIndex = i;
@@ -683,25 +675,18 @@
   renderer.domElement.addEventListener("pointerup", () => { activeRing = null; orbiting = false; });
   renderer.domElement.addEventListener("pointercancel", () => { activeRing = null; orbiting = false; });
 
-  // Keyboard: control the last selected ring (ArrowUp/ArrowDown)
-  function stepRing(ring, dir){
-    if (!ring) return;
-    const base = (ring.userData.targetIndex ?? ring.userData.index ?? 0);
-    applyRingIndex(ring, base + dir);
-  }
-
+  // Keyboard: control the last selected ring
   window.addEventListener("keydown", (e) => {
     if (!lastSelectedRing) return;
 
     if (e.key === "ArrowUp"){
       e.preventDefault();
-      stepRing(lastSelectedRing, +1);
+      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) - 1);
     } else if (e.key === "ArrowDown"){
       e.preventDefault();
-      stepRing(lastSelectedRing, -1);
+      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) + 1);
     }
   }, { passive:false });
-
 
 
   // Wheel: if over ring -> rotate it, else zoom camera
