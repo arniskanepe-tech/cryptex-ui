@@ -489,18 +489,21 @@
 
       // Textured mid band (this is where letters live)
       const mid = new THREE.Mesh(midGeo, ringMat);
+      mid.visible = false; // hide dark band under tiles
       mid.castShadow = true;
       mid.userData.parentRing = g;
       g.add(mid);
 
       // Edge lips (metal) — makes each ring clearly separate
       const lipA = new THREE.Mesh(lipGeo, lipMat);
+      lipA.visible = false; // hide rotating lip
       lipA.rotation.z = Math.PI/2;
       lipA.position.x = -(ringHeight/2 - lipT/2);
       lipA.castShadow = true;
       lipA.userData.parentRing = g;
 
       const lipB = new THREE.Mesh(lipGeo, lipMat);
+      lipB.visible = false; // hide rotating lip
       lipB.rotation.z = Math.PI/2;
       lipB.position.x = +(ringHeight/2 - lipT/2);
       lipB.castShadow = true;
