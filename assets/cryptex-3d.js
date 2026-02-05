@@ -13,12 +13,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   const scene = new THREE.Scene();
 
-  // Kamera fiksēta
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
   camera.position.set(0, 2.4, 7.5);
   camera.lookAt(0, 0, 0);
 
-  // Gaismas
+  // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
   const key = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -29,38 +28,34 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   fill.position.set(-6, 2, -3);
   scene.add(fill);
 
-  // === GALVENAIS TRIKS ===
-  // Mēs būvējam kripteksu tā, it kā tā ass būtu Z.
-  // Tad pagriežam visu grupu, lai uz ekrāna tas būtu horizontāli pa X.
+  // === Cryptex group (build in local-Z axis, then rotate to world-X) ===
   const cryptex = new THREE.Group();
-  cryptex.rotation.y = Math.PI / 2; // lokālais Z -> pasaules X
+  cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
 
   // === Body ===
   cryptex.add(createCryptexBodyLocalZ());
 
-  // === Rings ===
-  const SYMBOLS_PER_RING = 10;
+  // === Rings (segmented) ===
+  const SYMBOLS_PER_RING = 10;                 // plāksnīšu skaits uz riņķa
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  const rings = createRingsLocalZ();
+  const rings = createRingsLocalZ({ ringCount: 4, symbols: SYMBOLS_PER_RING });
   rings.forEach(r => cryptex.add(r));
 
   let activeRing = 0;
   updateActiveRingVisual();
 
-  // Tastatūra (ja ir)
+  // Keyboard (if any)
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
-    const k = e.key;
-
-    if (k === "ArrowLeft") setActive(activeRing - 1);
-    if (k === "ArrowRight") setActive(activeRing + 1);
-    if (k === "ArrowUp") rotateActive(+1);
-    if (k === "ArrowDown") rotateActive(-1);
+    if (e.key === "ArrowLeft") setActive(activeRing - 1);
+    if (e.key === "ArrowRight") setActive(activeRing + 1);
+    if (e.key === "ArrowUp") rotateActive(+1);
+    if (e.key === "ArrowDown") rotateActive(-1);
   });
 
-  // Ekrāna pogas (mobilajam)
+  // Screen buttons (mobile)
   bindScreenButtons();
 
   function bindScreenButtons() {
@@ -90,21 +85,22 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function rotateActive(dir) {
-    rotateRing(rings[activeRing], dir);
-  }
+    const ring = rings[activeRing];
+    ring.userData.index = (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
 
-  function rotateRing(ring, dir) {
-    ring.userData.index =
-      (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
-
-    // Tagad šis ir PAREIZAIS “ap bunduli” pagrieziens,
-    // jo lokāli Z ir kripteksa ass.
+    // Precīzs detent: 1 spiediens = 1 plāksnīte
     ring.rotation.z = ring.userData.index * STEP_ANGLE;
   }
 
   function updateActiveRingVisual() {
-    rings.forEach((r, i) => {
-      r.userData.mesh.material.color.set(i === activeRing ? 0x5a6072 : 0x3a3f4d);
+    rings.forEach((ring, i) => {
+      const isActive = i === activeRing;
+      // bāzes cilindrs
+      ring.userData.base.material.color.set(isActive ? 0x4f5668 : 0x2f3442);
+      // plāksnītes
+      ring.userData.plates.forEach(p => {
+        p.material.color.set(isActive ? 0x7a839a : 0x565e73);
+      });
     });
   }
 
@@ -130,62 +126,108 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return Math.max(a, Math.min(b, v));
   }
 
-  // Body ar asi pa Z (lokālajā telpā)
+  // Body along local Z
   function createCryptexBodyLocalZ() {
     const length = 8.0;
     const radius = 1.05;
 
-    // CylinderGeometry ass ir Y => pagriežam, lai ass kļūtu Z
     const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
-    geom.rotateX(Math.PI / 2);
+    geom.rotateX(Math.PI / 2); // Y axis -> Z axis
 
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x2b2f3a,
-      roughness: 0.55,
-      metalness: 0.35,
+      color: 0x232734,
+      roughness: 0.65,
+      metalness: 0.25,
     });
 
-    const mesh = new THREE.Mesh(geom, mat);
-    return mesh;
+    return new THREE.Mesh(geom, mat);
   }
 
-  // Riņķi ar asi pa Z (lokālajā telpā), izvietojam pa Z
-  function createRingsLocalZ() {
-    const ringCount = 4;
-
-    const ringWidth = 0.8; // 2× platāks
-    const radius = 1.15;
+  function createRingsLocalZ({ ringCount, symbols }) {
+    const ringWidth = 0.8;   // 2× platāks
+    const ringRadius = 1.15; // kur ir plāksnīšu centrs
     const gap = 0.12;
 
     const total = ringCount * ringWidth + (ringCount - 1) * gap;
     const startZ = -total / 2 + ringWidth / 2;
 
-    return Array.from({ length: ringCount }, (_, i) => {
-      const ring = createDialRingLocalZ(radius, ringWidth);
+    const rings = [];
+
+    for (let i = 0; i < ringCount; i++) {
+      const ring = createSegmentedRingLocalZ({
+        width: ringWidth,
+        radius: ringRadius,
+        symbols,
+      });
+
       ring.position.z = startZ + i * (ringWidth + gap);
       ring.userData.index = 0;
-      return ring;
-    });
+      rings.push(ring);
+    }
+
+    return rings;
   }
 
-  function createDialRingLocalZ(radius, width) {
-    // CylinderGeometry ass ir Y => pagriežam, lai ass kļūtu Z
-    const geom = new THREE.CylinderGeometry(radius, radius, width, 64, 1);
-    geom.rotateX(Math.PI / 2);
+  // Riņķis (local Z axis) sastāv no:
+  // - bāzes cilindrs (tumšāks)
+  // - symbols gab. plāksnītes pa apli (lai redz rotāciju)
+  function createSegmentedRingLocalZ({ width, radius, symbols }) {
+    const group = new THREE.Group();
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x3a3f4d,
-      roughness: 0.45,
-      metalness: 0.4,
+    // Bāze (mazliet mazāks radius, lai plāksnītes “sēž” virsū)
+    const baseRadius = radius - 0.06;
+    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
+    baseGeom.rotateX(Math.PI / 2); // axis -> Z
+
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x2f3442,
+      roughness: 0.55,
+      metalness: 0.35,
     });
 
-    const mesh = new THREE.Mesh(geom, mat);
+    const base = new THREE.Mesh(baseGeom, baseMat);
+    group.add(base);
 
-    const group = new THREE.Group();
-    group.add(mesh);
+    // Plāksnītes
+    // Forma: plāns “taisnstūra” gabals, kas stāv tangenciāli uz riņķa
+    const plates = [];
+    const plateW = width * 0.92;   // garums pa Z (riņķa platums)
+    const plateH = 0.28;           // augstums (radiāli)
+    const plateT = 0.10;           // biezums (tangenciāli)
 
-    // lai aktīvā riņķa krāsošana būtu vienkārša
-    group.userData.mesh = mesh;
+    const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
+
+    const plateMat = new THREE.MeshStandardMaterial({
+      color: 0x565e73,
+      roughness: 0.45,
+      metalness: 0.25,
+    });
+
+    const step = (Math.PI * 2) / symbols;
+
+    for (let s = 0; s < symbols; s++) {
+      const a = s * step;
+
+      const p = new THREE.Mesh(plateGeom, plateMat.clone());
+
+      // novietojam plāksnīti pa apli XY plaknē, ass ir Z
+      const r = radius + plateH * 0.35; // lai plāksne ir virs bāzes
+      p.position.x = Math.cos(a) * r;
+      p.position.y = Math.sin(a) * r;
+
+      // orientējam tā, lai plāksnīte būtu tangenciāli (skatās “apkārt”)
+      // a + 90° => tangente
+      p.rotation.z = a + Math.PI / 2;
+
+      // Neliels “slīpums” uz augšu/leju var dot “mehānisku” sajūtu (bet atstājam 0)
+      // p.rotation.x = 0;
+
+      plates.push(p);
+      group.add(p);
+    }
+
+    group.userData.base = base;
+    group.userData.plates = plates;
 
     return group;
   }
