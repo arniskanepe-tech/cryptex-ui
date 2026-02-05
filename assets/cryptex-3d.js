@@ -39,7 +39,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   // šis offset nosaka “kurā virzienā ir augša” ciparam uz ekrāna
   // Ja vēl joprojām būs pagriezts, pamaini uz 0 vai -Math.PI/2
-  const LABEL_UPRIGHT_OFFSET = Math.PI / 2;
+  const LABEL_UPRIGHT_OFFSET = 0;
 
   const rings = createRingsLocalZ({
     ringCount: 4,
