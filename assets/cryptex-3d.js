@@ -46,7 +46,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   let activeRing = 0;
   updateActiveRingVisual();
 
-  // Keyboard (ja ir)
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
@@ -55,7 +54,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     if (e.key === "ArrowDown") rotateActive(-1);
   });
 
-  // Mobile buttons
   bindScreenButtons();
 
   function bindScreenButtons() {
@@ -120,63 +118,85 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   window.addEventListener("resize", resize);
   resize();
 
-  function tick() {
-    // katrā kadrā “iztaisnojam” ciparus, lai ir salasāmi kamerā
-    keepLabelsUpright();
-    renderer.render(scene, camera);
-    requestAnimationFrame(tick);
-  }
-  tick();
-
-  // ===== Upright (kvaternionu billboard) =====
-  const _qPlateWorld = new THREE.Quaternion();
-  const _qInvPlateWorld = new THREE.Quaternion();
-  const _camUpWorld = new THREE.Vector3();
-  const _nLocal = new THREE.Vector3();
-  const _upLocal = new THREE.Vector3();
-  const _yAxis = new THREE.Vector3();
-  const _xAxis = new THREE.Vector3();
-  const _zAxis = new THREE.Vector3();
-  const _mBasis = new THREE.Matrix4();
+  // ===== UPRIGHT stabils (bez crash) =====
+  const _plateWorldQ = new THREE.Quaternion();
+  const _invPlateWorldQ = new THREE.Quaternion();
+  const _normalWorld = new THREE.Vector3();
+  const _upWorld = new THREE.Vector3();
+  const _upProj = new THREE.Vector3();
+  const _rightWorld = new THREE.Vector3();
+  const _upFinal = new THREE.Vector3();
+  const _m = new THREE.Matrix4();
+  const _qDesiredWorld = new THREE.Quaternion();
+  const _qLocal = new THREE.Quaternion();
+  const _fallbackRight = new THREE.Vector3(1, 0, 0);
+  const _fallbackUp = new THREE.Vector3(0, 1, 0);
 
   function keepLabelsUpright() {
-    // kameras “UP” pasaulē (screen-up)
-    _camUpWorld.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    // kamerai "up" pasaulē
+    _upWorld.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
 
     for (const ring of rings) {
       for (const p of ring.userData.plates) {
         const label = p.userData.labelPlane;
-        const n = p.userData.labelNormalLocal;
-        if (!label || !n) continue;
+        const nLocal = p.userData.labelNormalLocal; // plate-local normāle uz āru
+        if (!label || !nLocal) continue;
 
-        // kameras up pārnesam uz plate-local koordinātēm
-        p.getWorldQuaternion(_qPlateWorld);
-        _qInvPlateWorld.copy(_qPlateWorld).invert();
+        // plate world quaternion
+        p.getWorldQuaternion(_plateWorldQ);
+        _invPlateWorldQ.copy(_plateWorldQ).invert();
 
-        // normāle plate-local (nemainīga)
-        _nLocal.copy(n).normalize();
+        // normāle pasaulē
+        _normalWorld.copy(nLocal).applyQuaternion(_plateWorldQ).normalize();
 
-        // kameras “up” plate-local
-        _upLocal.copy(_camUpWorld).applyQuaternion(_qInvPlateWorld).normalize();
+        // projicējam kameras up uz plaknes
+        _upProj.copy(_upWorld).addScaledVector(_normalWorld, -_upWorld.dot(_normalWorld));
 
-        // projicējam up uz plaknes (perpendikulāri normālei)
-        _yAxis.copy(_upLocal).addScaledVector(_nLocal, -_upLocal.dot(_nLocal));
-
-        // ja “up” gandrīz paralēls normālei (degenerācija), dodam fallback
-        if (_yAxis.lengthSq() < 1e-6) {
-          _yAxis.set(0, 0, 1).addScaledVector(_nLocal, -_nLocal.z);
+        // ja sanāk gandrīz 0 (degenerācija), mēģinam ar fallback vektoru
+        if (_upProj.lengthSq() < 1e-6) {
+          const fw = _fallbackUp.clone().applyQuaternion(camera.quaternion);
+          _upProj.copy(fw).addScaledVector(_normalWorld, -fw.dot(_normalWorld));
+        }
+        if (_upProj.lengthSq() < 1e-6) {
+          const fr = _fallbackRight.clone().applyQuaternion(camera.quaternion);
+          _upProj.copy(fr).addScaledVector(_normalWorld, -fr.dot(_normalWorld));
         }
 
-        _yAxis.normalize();
-        _zAxis.copy(_nLocal); // plane normāle = uz āru
-        _xAxis.crossVectors(_yAxis, _zAxis).normalize(); // x = y × z
+        _upProj.normalize();
 
-        // plane basis: X-right, Y-up, Z-normal
-        _mBasis.makeBasis(_xAxis, _yAxis, _zAxis);
-        label.quaternion.setFromRotationMatrix(_mBasis);
+        // right = up × normal (labrocis)
+        _rightWorld.crossVectors(_upProj, _normalWorld);
+        if (_rightWorld.lengthSq() < 1e-6) continue;
+        _rightWorld.normalize();
+
+        // upFinal = normal × right (ortogonāls)
+        _upFinal.crossVectors(_normalWorld, _rightWorld).normalize();
+
+        // world orientācija labelim
+        _m.makeBasis(_rightWorld, _upFinal, _normalWorld);
+        _qDesiredWorld.setFromRotationMatrix(_m);
+
+        // pārvēršam uz plate-local: qLocal = inv(plateWorldQ) * qDesiredWorld
+        _qLocal.copy(_invPlateWorldQ).multiply(_qDesiredWorld);
+
+        // pieliekam labelim
+        label.quaternion.copy(_qLocal);
       }
     }
   }
+
+  function tick() {
+    // ja kaut kas notiek, šis vairs nepārvērtīs visu par melnu ekrānu
+    try {
+      keepLabelsUpright();
+    } catch (e) {
+      console.error("keepLabelsUpright error:", e);
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  tick();
 
   // ---------- helpers ----------
 
@@ -272,16 +292,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       p.position.y = Math.sin(a) * ringR;
       p.rotation.z = a + Math.PI / 2;
 
-      // šķirba
       p.scale.x = (plateT - gapT) / plateT;
 
       p.userData.baseColor = baseColor;
       p.userData.plainMats = [mat];
 
-      // ===== LABEL: tikai uz ārējās virsmas =====
-      const digitText = String(s); // 0..9 (ja būs 11, būs "10" — arī ok)
-
+      // ===== LABEL =====
+      const digitText = String(s);
       const tex = makeDigitTexture(THREE, digitText, baseColor);
+
       const labelMat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: true,
@@ -299,12 +318,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         labelMat
       );
 
-      // atrod “ārā” virzienu (ring-local), pārvērš plate-local
+      // atrodam “uz āru” virzienu ring-local, pārnesam plate-local
       scratchOut.set(p.position.x, p.position.y, 0).normalize();
       scratchInvQ.copy(p.quaternion).invert();
       scratchLocal.copy(scratchOut).applyQuaternion(scratchInvQ);
 
-      // izvēlamies dominējošo asi (±Y vai ±X), lai vienmēr trāpītu pareizajā virsmā
       const useY = Math.abs(scratchLocal.y) >= Math.abs(scratchLocal.x);
       const sign = (useY ? scratchLocal.y : scratchLocal.x) >= 0 ? 1 : -1;
 
@@ -313,20 +331,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       if (useY) {
         labelPlane.position.y = sign * (plateH / 2 + EPS);
-        // normāle uz ±Y: plane sākumā ir +Z, tāpēc pagriežam uz ±Y
         labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
+        p.userData.labelNormalLocal = new THREE.Vector3(0, sign, 0);
       } else {
         labelPlane.position.x = sign * (plateT / 2 + EPS);
-        // normāle uz ±X
         labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
+        p.userData.labelNormalLocal = new THREE.Vector3(sign, 0, 0);
       }
-
-      // saglabājam normāli (plate-local), lai upright funkcija zina “kur ir āra virsma”
-      p.userData.labelNormalLocal = useY
-        ? new THREE.Vector3(0, sign, 0)
-        : new THREE.Vector3(sign, 0, 0);
-
-      // (spoguļošanu vairs nevajag – upright kvaternions sakārto orientāciju konsekventi)
 
       p.add(labelPlane);
       p.userData.labelPlane = labelPlane;
@@ -348,11 +359,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     c.height = size;
     const ctx = c.getContext("2d");
 
-    // fons = plāksnes krāsa
     ctx.fillStyle = "#" + baseColor.getHexString();
     ctx.fillRect(0, 0, size, size);
 
-    // panelis
     ctx.fillStyle = "rgba(255,255,255,0.06)";
     roundRect(ctx, 28, 28, size - 56, size - 56, 22);
     ctx.fill();
