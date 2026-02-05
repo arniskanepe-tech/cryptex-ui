@@ -241,14 +241,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       });
 
       // BoxGeometry material order: +x, -x, +y, -y, +z, -z
-      const mats = [
-        plain(),          // +X
-        plain(),          // -X
-        digitMat,         // +Y  <<< ārējā radiālā virsma
-        plain(),          // -Y
-        plain(),          // +Z
-        plain(),          // -Z
-      ];
+      const mats = [digitMat, digitMat, digitMat, digitMat, digitMat, digitMat];
 
       const p = new THREE.Mesh(plateGeom, mats);
 
