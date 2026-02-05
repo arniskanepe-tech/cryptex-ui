@@ -37,10 +37,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  // šis offset nosaka “kurā virzienā ir augša” ciparam uz ekrāna
-  // Ja vēl joprojām būs pagriezts, pamaini uz 0 vai -Math.PI/2
-  const LABEL_UPRIGHT_OFFSET = Math.PI / 2;
-
   const rings = createRingsLocalZ({
     ringCount: 4,
     symbols: SYMBOLS_PER_RING,
@@ -125,23 +121,59 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   resize();
 
   function tick() {
-    // IMPORTANT: katrā kadrā “iztaisnojam” ciparus, lai ir salasāmi kamerā
+    // katrā kadrā “iztaisnojam” ciparus, lai ir salasāmi kamerā
     keepLabelsUpright();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
 
+  // ===== Upright (kvaternionu billboard) =====
+  const _qPlateWorld = new THREE.Quaternion();
+  const _qInvPlateWorld = new THREE.Quaternion();
+  const _camUpWorld = new THREE.Vector3();
+  const _nLocal = new THREE.Vector3();
+  const _upLocal = new THREE.Vector3();
+  const _yAxis = new THREE.Vector3();
+  const _xAxis = new THREE.Vector3();
+  const _zAxis = new THREE.Vector3();
+  const _mBasis = new THREE.Matrix4();
+
   function keepLabelsUpright() {
+    // kameras “UP” pasaulē (screen-up)
+    _camUpWorld.set(0, 1, 0).applyQuaternion(camera.quaternion);
+
     for (const ring of rings) {
-      const rz = ring.rotation.z; // ring detent rotācija
       for (const p of ring.userData.plates) {
         const label = p.userData.labelPlane;
-        if (!label) continue;
+        const n = p.userData.labelNormalLocal;
+        if (!label || !n) continue;
 
-        // p.userData.baseRotZ = plāksnes “stacionārā” Z-rotācija (a + PI/2)
-        // Lai cipars NEROTĒ līdzi riņķim ap cilindru, atceļam ring+plate Z rotāciju tikai labelam.
-        label.rotation.z = -(rz + p.userData.baseRotZ) + LABEL_UPRIGHT_OFFSET;
+        // kameras up pārnesam uz plate-local koordinātēm
+        p.getWorldQuaternion(_qPlateWorld);
+        _qInvPlateWorld.copy(_qPlateWorld).invert();
+
+        // normāle plate-local (nemainīga)
+        _nLocal.copy(n).normalize();
+
+        // kameras “up” plate-local
+        _upLocal.copy(_camUpWorld).applyQuaternion(_qInvPlateWorld).normalize();
+
+        // projicējam up uz plaknes (perpendikulāri normālei)
+        _yAxis.copy(_upLocal).addScaledVector(_nLocal, -_upLocal.dot(_nLocal));
+
+        // ja “up” gandrīz paralēls normālei (degenerācija), dodam fallback
+        if (_yAxis.lengthSq() < 1e-6) {
+          _yAxis.set(0, 0, 1).addScaledVector(_nLocal, -_nLocal.z);
+        }
+
+        _yAxis.normalize();
+        _zAxis.copy(_nLocal); // plane normāle = uz āru
+        _xAxis.crossVectors(_yAxis, _zAxis).normalize(); // x = y × z
+
+        // plane basis: X-right, Y-up, Z-normal
+        _mBasis.makeBasis(_xAxis, _yAxis, _zAxis);
+        label.quaternion.setFromRotationMatrix(_mBasis);
       }
     }
   }
@@ -245,7 +277,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       p.userData.baseColor = baseColor;
       p.userData.plainMats = [mat];
-      p.userData.baseRotZ = p.rotation.z; // <== svarīgi “upright” korekcijai
 
       // ===== LABEL: tikai uz ārējās virsmas =====
       const digitText = String(s); // 0..9 (ja būs 11, būs "10" — arī ok)
@@ -261,7 +292,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       });
 
       const labelPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(Math.min(plateT * 0.86, 0.60), Math.min(plateW * 0.72, 0.58)),
+        new THREE.PlaneGeometry(
+          Math.min(plateT * 0.86, 0.60),
+          Math.min(plateW * 0.72, 0.58)
+        ),
         labelMat
       );
 
@@ -279,18 +313,20 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       if (useY) {
         labelPlane.position.y = sign * (plateH / 2 + EPS);
+        // normāle uz ±Y: plane sākumā ir +Z, tāpēc pagriežam uz ±Y
         labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
       } else {
         labelPlane.position.x = sign * (plateT / 2 + EPS);
+        // normāle uz ±X
         labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
       }
 
-      // spoguļošana, ja vajag
-      if (sign < 0) {
-        tex.repeat.x = -1;
-        tex.offset.x = 1;
-        tex.needsUpdate = true;
-      }
+      // saglabājam normāli (plate-local), lai upright funkcija zina “kur ir āra virsma”
+      p.userData.labelNormalLocal = useY
+        ? new THREE.Vector3(0, sign, 0)
+        : new THREE.Vector3(sign, 0, 0);
+
+      // (spoguļošanu vairs nevajag – upright kvaternions sakārto orientāciju konsekventi)
 
       p.add(labelPlane);
       p.userData.labelPlane = labelPlane;
