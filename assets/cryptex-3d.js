@@ -240,7 +240,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       label.rotation.x = -Math.PI / 2;
 
       // PAPILDUS: pagriežam par 90° ap Z, lai cipars stāvētu “taisni” uz plāksnes
-      label.rotation.z = Math.PI / 2;
+      label.rotation.y = Math.PI / 2;
 
       p.add(label);
       p.userData.label = label;
