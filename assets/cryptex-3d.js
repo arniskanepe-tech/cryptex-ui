@@ -264,8 +264,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         map: tex,
         transparent: true,
         opacity: 1,
-        depthTest: false,   // TEST: vienmēr redzams (vēlāk varam ieslēgt)
+        depthTest: true,   // TEST: vienmēr redzams (vēlāk varam ieslēgt)
         depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
       });
       mats.push(mat);
     }
