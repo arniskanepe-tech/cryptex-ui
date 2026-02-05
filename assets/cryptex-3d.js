@@ -17,7 +17,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   camera.position.set(0, 2.4, 7.5);
   camera.lookAt(0, 0, 0);
 
-  // Lights (plāksnēm, cilindram)
+  // lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
   const key = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -28,7 +28,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   fill.position.set(-6, 2, -3);
   scene.add(fill);
 
-  // Cryptex group: būvējam "local Z" un pagriežam uz horizontālu
+  // Cryptex group: build in local Z, rotate to horizontal
   const cryptex = new THREE.Group();
   cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
@@ -47,7 +47,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   let activeRing = 0;
   updateActiveRingVisual();
 
-  // Keyboard (ja ir)
+  // keyboard
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
@@ -56,7 +56,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     if (e.key === "ArrowDown") rotateActive(-1);
   });
 
-  // Mobile buttons (tev jau strādā)
+  // mobile buttons
   bindScreenButtons();
 
   function bindScreenButtons() {
@@ -95,15 +95,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function updateActiveRingVisual() {
     rings.forEach((ring, i) => {
       const isActive = i === activeRing;
-
       ring.userData.base.material.color.set(isActive ? 0x4f5668 : 0x2f3442);
 
       ring.userData.plates.forEach((p) => {
         const base = p.userData.baseColor.clone();
         if (isActive) base.multiplyScalar(1.12);
-
-        // plain virsmas
         p.userData.plainMats.forEach((m) => m.color.copy(base));
+
+        // label nedaudz spilgtāks aktīvajam riņķim
+        if (p.userData.labelMat) {
+          p.userData.labelMat.opacity = isActive ? 1.0 : 0.92;
+        }
       });
     });
   }
@@ -167,7 +169,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
   }
 
-  // Plāksne+cipars = viens mesh (cipars ir tekstūra uz ārējās virsmas)
   function createSegmentedRingLocalZ({ width, radius, symbols }) {
     const group = new THREE.Group();
 
@@ -188,19 +189,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const plates = [];
     const step = (Math.PI * 2) / symbols;
 
-    // plāksnes proporcijas (kā tev patika)
-    const plateW = width * 0.96;  // garums pa cryptex asi (local Z)
-    const plateH = 0.18;          // radiālā “augstuma” biezums
-    const plateT = 0.62;          // “platums” tangenciālajā virzienā
+    // plāksnes
+    const plateW = width * 0.96;  // garums pa assi
+    const plateH = 0.18;          // radiālais biezums
+    const plateT = 0.62;          // tangenciālais platums
     const gapT = 0.08;
 
     const ringR = radius + plateH * 0.30;
 
     const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
 
-    // ===== ROTATION_TWEAK =====
-    // Ja kādā ierīcē cipari ir pagriezti par 90°, pamaini šo uz 0 vai -Math.PI/2
-    const UV_ORIENTATION_FIX = Math.PI / 2;
+    // ja vajag 90° pielabot virzienu (parasti nevajag)
+    const DIGIT_UPRIGHT_FIX = 0; // mēģini 0, ja vajag: Math.PI/2 vai -Math.PI/2
 
     for (let s = 0; s < symbols; s++) {
       const a = s * step;
@@ -216,45 +216,67 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
           metalness: 0.22,
         });
 
-      // Digit tekstūra + materiāls (neatkarīgs no gaismām => vienmēr redzams)
-      const digit = s % 10; // pagaidām 0..9
-      const digitTex = makeDigitFaceTexture(THREE, String(digit), baseColor);
-
-      // lai cipars būtu "upright" ekrānā: kompensējam plāksnes rotāciju ap Z
-      digitTex.center.set(0.5, 0.5);
-      digitTex.rotation = -(a + Math.PI / 2) + UV_ORIENTATION_FIX;
-
-      const digitMat = new THREE.MeshBasicMaterial({ map: digitTex });
-      digitMat.toneMapped = false;
-      digitMat.transparent = false;
-      digitMat.depthTest = true;
-      digitMat.depthWrite = true;
-
-      // BoxGeometry material order: +x, -x, +y, -y, +z, -z
-      // Mēs gribam ciparu tieši uz +Y, jo pēc mūsu p.rotation.z tas ir "ārā prom no centra".
+      // 6 materiāli (plāksnei) — šeit ciparu NELIEKAM uz box face,
+      // jo tieši šeit Safari dažreiz “apēd” / “pazūd”.
       const mats = [
-        plain(),   // +X
-        plain(),   // -X
-        digitMat,  // +Y  <<< ārējā radiālā virsma (prom no centra)
-        plain(),   // -Y
-        plain(),   // +Z
-        plain(),   // -Z
+        plain(), // +X
+        plain(), // -X
+        plain(), // +Y
+        plain(), // -Y
+        plain(), // +Z
+        plain(), // -Z
       ];
 
       const p = new THREE.Mesh(plateGeom, mats);
 
-      // novietojums apkārt ringam
       p.position.x = Math.cos(a) * ringR;
       p.position.y = Math.sin(a) * ringR;
 
-      // pagrieziens: lai +Y virsma skatās radiāli uz āru
+      // svarīgi: lai ārējā virsma ir lokāli +Y
       p.rotation.z = a + Math.PI / 2;
 
       // šķirba starp segmentiem
       p.scale.x = (plateT - gapT) / plateT;
 
+      // ===== LABEL PLANE (vienmēr redzams un pareizi "upright") =====
+      const digit = (s % 10).toString();
+
+      // ieceptais pagrieziens, lai cipars būtu taisni ekrānā:
+      // plāksne lokāli ir pagriezta par (a + pi/2), tāpēc tekstu zīmējam ar pretēju leņķi.
+      const bakedAngle = -(a + Math.PI / 2) + DIGIT_UPRIGHT_FIX;
+
+      const labelTex = makeDigitTextureBaked(THREE, digit, baseColor, bakedAngle);
+
+      const labelMat = new THREE.MeshBasicMaterial({
+        map: labelTex,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      });
+      labelMat.toneMapped = false;
+
+      // plane izmērs (pielāgo pēc gaumes)
+      const labelW = plateT * 0.72;
+      const labelH = plateW * 0.55;
+      const labelGeom = new THREE.PlaneGeometry(labelW, labelH);
+      const label = new THREE.Mesh(labelGeom, labelMat);
+
+      // novietojam uz ārējās virsmas (lokāli +Y) ar mazu offset, lai nav z-fighting
+      label.position.set(0, plateH / 2 + 0.012, 0);
+
+      // plane normāle sākumā ir +Z, mums vajag +Y => rotācija ap X -90°
+      label.rotation.x = -Math.PI / 2;
+
+      p.add(label);
+
       p.userData.baseColor = baseColor;
-      p.userData.plainMats = [mats[0], mats[1], mats[3], mats[4], mats[5]];
+      p.userData.plainMats = mats;
+      p.userData.labelMat = labelMat;
 
       plates.push(p);
       group.add(p);
@@ -265,36 +287,42 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return group;
   }
 
-  // Uzzīmē ciparu uz fona, kas ir tonī līdzīgs plāksnei, bet ar paneli lai ir kontrasts
-  function makeDigitFaceTexture(THREE, text, baseColor) {
+  // CanvasTexture ar "ieceptu" rotāciju (stabilāk uz Safari nekā texture.rotation)
+  function makeDigitTextureBaked(THREE, text, baseColor, angleRad) {
     const size = 256;
     const c = document.createElement("canvas");
     c.width = size;
     c.height = size;
     const ctx = c.getContext("2d");
 
-    // fons = plāksnes krāsa
+    // background = plāksnes tonis
     ctx.fillStyle = "#" + baseColor.getHexString();
     ctx.fillRect(0, 0, size, size);
 
-    // panelis (kontrastaināks, lai mobilajā tiešām redz)
+    // panelis, lai cipars izceļas
     ctx.fillStyle = "rgba(255,255,255,0.18)";
-    roundRect(ctx, 26, 26, size - 52, size - 52, 22);
+    roundRect(ctx, 28, 28, size - 56, size - 56, 22);
     ctx.fill();
+
+    // ROTĒJAM VISU ZĪMĒJUMU AP CENTRU
+    ctx.save();
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate(angleRad);
+    ctx.translate(-size / 2, -size / 2);
 
     // cipars
     ctx.font = "900 156px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // outline
     ctx.lineWidth = 20;
     ctx.strokeStyle = "rgba(0,0,0,0.88)";
     ctx.strokeText(text, size / 2, size / 2 + 4);
 
-    // fill
     ctx.fillStyle = "rgba(255,255,255,0.98)";
     ctx.fillText(text, size / 2, size / 2 + 4);
+
+    ctx.restore();
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
