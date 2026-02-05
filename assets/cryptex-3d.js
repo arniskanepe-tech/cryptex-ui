@@ -261,6 +261,9 @@
   let ringsCount = 8;
   let progress = 0;
 
+  // ===== Fixed camera view (test mode) =====
+  const LOCK_VIEW = true; // when true: cryptex cannot be orbited/zoomed
+
   // Camera orbit + zoom
   let orbiting = false;
   let orbitStart = { x:0, y:0, ry:0, rx:0 };
@@ -363,8 +366,13 @@
     dist *= 1.35;
 
     zoom.dist = dist;
-    camera.position.set(dist * 0.85, dist * 0.40, dist);
-    camera.lookAt(0, 0, 0);
+    if (LOCK_VIEW){
+      camera.position.set(0, 2.2, dist);
+      camera.lookAt(0, 0, 0);
+    } else {
+      camera.position.set(dist * 0.85, dist * 0.40, dist);
+      camera.lookAt(0, 0, 0);
+    }
     camera.updateProjectionMatrix();
 
     ground.position.y = -(size.y/2) - 0.8;
@@ -581,8 +589,8 @@
       rings.push(g);
     }
 
-    cryptexGroup.rotation.y = -0.35;
-    cryptexGroup.rotation.x = -0.10;
+    cryptexGroup.rotation.y = 0;
+    cryptexGroup.rotation.x = 0;
 
     scene.add(cryptexGroup);
     fitCameraToObject(cryptexGroup);
@@ -634,9 +642,9 @@
       return;
     }
 
-    // Otherwise orbit whole object
-    if (cryptexGroup){
-      orbiting = true;
+    // Otherwise orbit whole object (disabled in LOCK_VIEW)
+    if (!LOCK_VIEW && cryptexGroup){
+      orbiting = true,
       orbitStart.x = e.clientX;
       orbitStart.y = e.clientY;
       orbitStart.ry = cryptexGroup.rotation.y;
@@ -669,7 +677,7 @@
       return;
     }
 
-    if (orbiting && cryptexGroup){
+    if (!LOCK_VIEW && orbiting && cryptexGroup){
       const dx = e.clientX - orbitStart.x;
       const dy = e.clientY - orbitStart.y;
       cryptexGroup.rotation.y = orbitStart.ry + dx * 0.006;
@@ -711,11 +719,16 @@
       applyRingIndex(r, r.userData.index + (e.deltaY > 0 ? 1 : -1));
       return;
     }
+
+    // Zoom/orbit disabled in fixed-view test mode
+    if (LOCK_VIEW) return;
+
     // zoom
     zoom.dist *= (e.deltaY > 0 ? 1.06 : 0.94);
     zoom.dist = Math.max(3.5, Math.min(40, zoom.dist));
     camera.position.set(zoom.dist * 0.85, zoom.dist * 0.40, zoom.dist);
     camera.lookAt(0,0,0);
+    camera.updateProjectionMatrix();
   }, { passive:false });
 
   // UI
