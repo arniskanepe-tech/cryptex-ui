@@ -28,16 +28,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   fill.position.set(-6, 2, -3);
   scene.add(fill);
 
-  // === Cryptex group (build in local-Z axis, then rotate to world-X) ===
+  // Cryptex group: build local Z, rotate to horizontal
   const cryptex = new THREE.Group();
   cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
 
-  // === Body ===
   cryptex.add(createCryptexBodyLocalZ());
 
-  // === Rings (segmented) ===
-  const SYMBOLS_PER_RING = 10;                 // plāksnīšu skaits uz riņķa
+  // Rings (segmented)
+  const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
   const rings = createRingsLocalZ({ ringCount: 4, symbols: SYMBOLS_PER_RING });
@@ -46,7 +45,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   let activeRing = 0;
   updateActiveRingVisual();
 
-  // Keyboard (if any)
+  // Keyboard
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
@@ -55,7 +54,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     if (e.key === "ArrowDown") rotateActive(-1);
   });
 
-  // Screen buttons (mobile)
+  // Screen buttons
   bindScreenButtons();
 
   function bindScreenButtons() {
@@ -87,19 +86,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function rotateActive(dir) {
     const ring = rings[activeRing];
     ring.userData.index = (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
-
-    // Precīzs detent: 1 spiediens = 1 plāksnīte
     ring.rotation.z = ring.userData.index * STEP_ANGLE;
   }
 
   function updateActiveRingVisual() {
     rings.forEach((ring, i) => {
       const isActive = i === activeRing;
-      // bāzes cilindrs
+
       ring.userData.base.material.color.set(isActive ? 0x4f5668 : 0x2f3442);
-      // plāksnītes
-      ring.userData.plates.forEach(p => {
-        p.material.color.set(isActive ? 0x7a839a : 0x565e73);
+
+      // plāksnītes: aktīvajam mazliet gaišākas
+      ring.userData.plates.forEach((p) => {
+        const baseColor = p.userData.baseColor; // saglabāts katrai plāksnei
+        const c = baseColor.clone();
+        if (isActive) c.multiplyScalar(1.25);
+        p.material.color.copy(c);
       });
     });
   }
@@ -126,13 +127,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return Math.max(a, Math.min(b, v));
   }
 
-  // Body along local Z
   function createCryptexBodyLocalZ() {
     const length = 8.0;
     const radius = 1.05;
 
     const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
-    geom.rotateX(Math.PI / 2); // Y axis -> Z axis
+    geom.rotateX(Math.PI / 2);
 
     const mat = new THREE.MeshStandardMaterial({
       color: 0x232734,
@@ -144,16 +144,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function createRingsLocalZ({ ringCount, symbols }) {
-    const ringWidth = 0.8;   // 2× platāks
-    const ringRadius = 1.15; // kur ir plāksnīšu centrs
+    const ringWidth = 0.8;
+    const ringRadius = 1.15;
     const gap = 0.12;
 
     const total = ringCount * ringWidth + (ringCount - 1) * gap;
     const startZ = -total / 2 + ringWidth / 2;
 
-    const rings = [];
-
-    for (let i = 0; i < ringCount; i++) {
+    return Array.from({ length: ringCount }, (_, i) => {
       const ring = createSegmentedRingLocalZ({
         width: ringWidth,
         radius: ringRadius,
@@ -162,22 +160,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       ring.position.z = startZ + i * (ringWidth + gap);
       ring.userData.index = 0;
-      rings.push(ring);
-    }
-
-    return rings;
+      return ring;
+    });
   }
 
-  // Riņķis (local Z axis) sastāv no:
-  // - bāzes cilindrs (tumšāks)
-  // - symbols gab. plāksnītes pa apli (lai redz rotāciju)
   function createSegmentedRingLocalZ({ width, radius, symbols }) {
     const group = new THREE.Group();
 
-    // Bāze (mazliet mazāks radius, lai plāksnītes “sēž” virsū)
+    // base cylinder
     const baseRadius = radius - 0.06;
     const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
-    baseGeom.rotateX(Math.PI / 2); // axis -> Z
+    baseGeom.rotateX(Math.PI / 2);
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x2f3442,
@@ -188,39 +181,47 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const base = new THREE.Mesh(baseGeom, baseMat);
     group.add(base);
 
-    // Plāksnītes
-    // Forma: plāns “taisnstūra” gabals, kas stāv tangenciāli uz riņķa
+    // plates
     const plates = [];
-    const plateW = width * 0.92;   // garums pa Z (riņķa platums)
-    const plateH = 0.28;           // augstums (radiāli)
-    const plateT = 0.10;           // biezums (tangenciāli)
+    const plateW = width * 0.92;
+    const plateH = 0.28;
+    const plateT = 0.10;
 
     const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
-
-    const plateMat = new THREE.MeshStandardMaterial({
-      color: 0x565e73,
-      roughness: 0.45,
-      metalness: 0.25,
-    });
 
     const step = (Math.PI * 2) / symbols;
 
     for (let s = 0; s < symbols; s++) {
       const a = s * step;
 
-      const p = new THREE.Mesh(plateGeom, plateMat.clone());
+      // katrai plāksnei savs mats (lai krāsas atšķiras)
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.45,
+        metalness: 0.25,
+      });
 
-      // novietojam plāksnīti pa apli XY plaknē, ass ir Z
-      const r = radius + plateH * 0.35; // lai plāksne ir virs bāzes
+      const p = new THREE.Mesh(plateGeom, mat);
+
+      // pozīcija pa apli
+      const r = radius + plateH * 0.35;
       p.position.x = Math.cos(a) * r;
       p.position.y = Math.sin(a) * r;
 
-      // orientējam tā, lai plāksnīte būtu tangenciāli (skatās “apkārt”)
-      // a + 90° => tangente
+      // tangenciāli
       p.rotation.z = a + Math.PI / 2;
 
-      // Neliels “slīpums” uz augšu/leju var dot “mehānisku” sajūtu (bet atstājam 0)
-      // p.rotation.x = 0;
+      // ===== KRĀSOŠANA TESTAM =====
+      // Gradient + "marķieris" (s==0) lai uzreiz redzētu rotāciju
+      const t = s / (symbols - 1); // 0..1
+
+      // tumšs -> gaišāks pelēks
+      const c = new THREE.Color().setHSL(0.62, 0.12, 0.28 + 0.22 * t);
+
+      // marķieris — viena plāksne izteikti gaišāka
+      if (s === 0) c.setHSL(0.10, 0.55, 0.62); // silts “bēšīgs” marķieris
+
+      p.userData.baseColor = c; // saglabājam, lai aktīvajam varam pastiprināt
+      p.material.color.copy(c);
 
       plates.push(p);
       group.add(p);
