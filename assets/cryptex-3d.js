@@ -39,46 +39,60 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   rings.forEach(r => scene.add(r));
 
   let activeRing = 0;
-
   updateActiveRingVisual();
 
-  // === Keyboard ===
+  // === Keyboard (ja ir) ===
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
+    const k = e.key;
 
-    switch (e.key) {
-      case "ArrowLeft":
-        activeRing = Math.max(0, activeRing - 1);
-        updateActiveRingVisual();
-        break;
-
-      case "ArrowRight":
-        activeRing = Math.min(rings.length - 1, activeRing + 1);
-        updateActiveRingVisual();
-        break;
-
-      case "ArrowUp":
-        rotateRing(rings[activeRing], +1);
-        break;
-
-      case "ArrowDown":
-        rotateRing(rings[activeRing], -1);
-        break;
-    }
+    if (k === "ArrowLeft") setActive(activeRing - 1);
+    if (k === "ArrowRight") setActive(activeRing + 1);
+    if (k === "ArrowUp") rotateActive(+1);
+    if (k === "ArrowDown") rotateActive(-1);
   });
+
+  // === Mobile/Screen buttons ===
+  bindScreenButtons();
+
+  function bindScreenButtons() {
+    const controls = document.querySelector(".controls");
+    if (!controls) return;
+
+    // Lai iOS nebūtu “double tap zoom” un lai spiešana būtu “tūlītēja”
+    controls.addEventListener("pointerdown", (e) => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      e.preventDefault();
+
+      const action = btn.dataset.action;
+      if (action === "left") setActive(activeRing - 1);
+      if (action === "right") setActive(activeRing + 1);
+      if (action === "up") rotateActive(+1);
+      if (action === "down") rotateActive(-1);
+    }, { passive: false });
+  }
+
+  function setActive(nextIndex) {
+    activeRing = clamp(nextIndex, 0, rings.length - 1);
+    updateActiveRingVisual();
+  }
+
+  function rotateActive(dir) {
+    rotateRing(rings[activeRing], dir);
+  }
 
   function rotateRing(ring, dir) {
     ring.userData.index =
       (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
 
+    // Precīza pozīcija bez starpstāvokļiem
     ring.rotation.z = ring.userData.index * STEP_ANGLE;
   }
 
   function updateActiveRingVisual() {
     rings.forEach((r, i) => {
-      r.children[0].material.color.set(
-        i === activeRing ? 0x5a6072 : 0x3a3f4d
-      );
+      r.children[0].material.color.set(i === activeRing ? 0x5a6072 : 0x3a3f4d);
     });
   }
 
@@ -100,6 +114,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   // ---------- helpers ----------
 
+  function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+  }
+
   function createCryptexBody() {
     const geom = new THREE.CylinderGeometry(1.05, 1.05, 8, 48, 1);
     geom.rotateZ(Math.PI / 2);
@@ -118,12 +136,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   function createRings() {
     const ringCount = 4;
-    const ringWidth = 0.8;
+    const ringWidth = 0.8;   // 2× platāks
     const radius = 1.15;
     const gap = 0.12;
 
-    const total =
-      ringCount * ringWidth + (ringCount - 1) * gap;
+    const total = ringCount * ringWidth + (ringCount - 1) * gap;
     const startX = -total / 2 + ringWidth / 2;
 
     return Array.from({ length: ringCount }, (_, i) => {
