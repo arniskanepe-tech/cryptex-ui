@@ -43,6 +43,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   });
   rings.forEach(r => cryptex.add(r));
 
+// ===== DEBUG: vai ciparu tekstūra vispār strādā? =====
+{
+  const testTex = makeDigitFaceTexture(THREE, "8", new THREE.Color("#2f3442"));
+  const testMat = new THREE.MeshBasicMaterial({ map: testTex, transparent: false });
+  const testPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), testMat);
+
+  // noliekam ekrāna priekšā, lai 100% redzams
+  testPlane.position.set(0, 0, 1.2);
+  scene.add(testPlane);
+}
+
   let activeRing = 0;
   updateActiveRingVisual();
 
