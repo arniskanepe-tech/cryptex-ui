@@ -75,6 +75,9 @@
   const rebuildBtn = document.getElementById("rebuild");
   const levelDoneBtn = document.getElementById("levelDone");
   const checkBtn = document.getElementById("checkBtn");
+  const ringControlsEl = document.getElementById("ringControls");
+  let ringControlButtons = [];
+
   const statusEl = document.getElementById("status");
 
   function normalizeSolution(len){
@@ -261,9 +264,6 @@
   let ringsCount = 8;
   let progress = 0;
 
-  // ===== Fixed camera view (test mode) =====
-  const LOCK_VIEW = true; // when true: cryptex cannot be orbited/zoomed
-
   // Camera orbit + zoom
   let orbiting = false;
   let orbitStart = { x:0, y:0, ry:0, rx:0 };
@@ -366,13 +366,8 @@
     dist *= 1.35;
 
     zoom.dist = dist;
-    if (LOCK_VIEW){
-      camera.position.set(0, 2.2, dist);
-      camera.lookAt(0, 0, 0);
-    } else {
-      camera.position.set(dist * 0.85, dist * 0.40, dist);
-      camera.lookAt(0, 0, 0);
-    }
+    camera.position.set(0, dist * 0.18, dist); // straight-on view
+    camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
 
     ground.position.y = -(size.y/2) - 0.8;
@@ -400,9 +395,11 @@
     cryptexGroup = new THREE.Group();
 
     const ringRadius = 1.52; // larger rings to match caps
-    const ringHeight = 1.10; // 2x platāks riņķis
+    const ringHeight = 1.10; // 2x wider rings
     const ringGap = 0.07; // visible micro gap (so rings don't merge into one block)
-    const bodyLen = ringsCount * (ringHeight + ringGap) + 1.3;
+    const totalLen = ringsCount * ringHeight + (ringsCount - 1) * ringGap;
+    const bodyLen = totalLen + 1.30; // core length incl. extra margins
+    const startX = -totalLen/2 + ringHeight/2;
     // Mechanical core (inner rod) instead of a full outer tube
     const coreRod = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, bodyLen + 2.2, 32, 1, false), hubMat);
     coreRod.rotation.z = Math.PI/2;
@@ -413,7 +410,7 @@
     // ===== Window / Readout =====
     // This used to be a filled black plate; now it's a "frame" (no fill),
     // so we can show the currently selected symbol from each ring inside it.
-    const windowW = bodyLen * 0.86;
+    const windowW = totalLen * 0.92;
     const windowH = 0.62;
     const windowZ = ringRadius + 0.50;
 
@@ -435,7 +432,7 @@
     const tileGeo = new THREE.PlaneGeometry(tileW, tileH);
 
     for (let i = 0; i < ringsCount; i++){
-      const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
+      const x = startX + i*(ringHeight + ringGap);
 
       const tex = makeGlyphTexture(ALPHABET[0]);
       const mat = new THREE.MeshStandardMaterial({
@@ -455,13 +452,13 @@
     const capGeo = new THREE.CylinderGeometry(1.68, 1.68, 0.85, 56);
     const capL = new THREE.Mesh(capGeo, capMat);
     capL.rotation.z = Math.PI/2;
-    capL.position.x = -bodyLen/2 - 0.7;
+    capL.position.x = -totalLen/2 - 0.70;
     capL.castShadow = true;
     cryptexGroup.add(capL);
 
     const capR = new THREE.Mesh(capGeo, capMat);
     capR.rotation.z = Math.PI/2;
-    capR.position.x = bodyLen/2 + 0.7;
+    capR.position.x = totalLen/2 + 0.70;
     capR.castShadow = true;
     cryptexGroup.add(capR);
 
@@ -484,7 +481,7 @@
         spacerMat
       );
       spacer.rotation.z = Math.PI/2;
-      const ringCenterX = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
+      const ringCenterX = startX + i*(ringHeight + ringGap);
       spacer.position.set(ringCenterX + (ringHeight + ringGap)/2, 0, 0);
       spacer.castShadow = true;
       cryptexGroup.add(spacer);
@@ -493,7 +490,7 @@
     for (let i=0;i<ringsCount;i++){
       // Use a Group so we can build a "real" ring: mid band + 2 lips + hub
       const g = new THREE.Group();
-      const x = -bodyLen/2 + 0.82 + i*(ringHeight + ringGap);
+      const x = startX + i*(ringHeight + ringGap);
       g.position.set(x, 0, 0);
       g.rotation.z = Math.PI/2;
 
@@ -591,11 +588,86 @@
 
     cryptexGroup.rotation.y = 0;
     cryptexGroup.rotation.x = 0;
+    cryptexGroup.rotation.z = 0; // keep perfectly level
 
     scene.add(cryptexGroup);
     fitCameraToObject(cryptexGroup);
     updateReadout();
-    updateStatus();
+    
+  // ===== Per-ring + / - controls (UI overlay) =====
+  function clearRingControls(){
+    if (!ringControlsEl) return;
+    ringControlsEl.innerHTML = "";
+    ringControlButtons = [];
+  }
+
+  function buildRingControls(){
+    clearRingControls();
+    if (!ringControlsEl) return;
+
+    for (let i=0;i<rings.length;i++){
+      const wrap = document.createElement("div");
+      wrap.className = "ringCtrl";
+      wrap.dataset.i = String(i);
+
+      const plus = document.createElement("button");
+      plus.className = "ctrlBtn";
+      plus.type = "button";
+      plus.textContent = "+";
+
+      const minus = document.createElement("button");
+      minus.className = "ctrlBtn";
+      minus.type = "button";
+      minus.textContent = "–";
+
+      plus.addEventListener("click", (e)=>{
+        e.preventDefault();
+        const r = rings[i];
+        if (!r) return;
+        lastSelectedRing = r;
+        const base = (typeof r.userData.targetIndex === "number") ? r.userData.targetIndex : (r.userData.index || 0);
+        applyRingIndex(r, base + 1);
+      });
+
+      minus.addEventListener("click", (e)=>{
+        e.preventDefault();
+        const r = rings[i];
+        if (!r) return;
+        lastSelectedRing = r;
+        const base = (typeof r.userData.targetIndex === "number") ? r.userData.targetIndex : (r.userData.index || 0);
+        applyRingIndex(r, base - 1);
+      });
+
+      wrap.appendChild(plus);
+      wrap.appendChild(minus);
+      ringControlsEl.appendChild(wrap);
+
+      ringControlButtons.push({wrap, plus, minus, ringIndex:i});
+    }
+  }
+
+  function updateRingControls(){
+    if (!ringControlsEl || !ringControlButtons.length) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    for (const item of ringControlButtons){
+      const r = rings[item.ringIndex];
+      if (!r) continue;
+
+      // project ring center to screen space
+      const v = new THREE.Vector3();
+      r.getWorldPosition(v);
+      v.project(camera);
+
+      const sx = (v.x * 0.5 + 0.5) * rect.width + rect.left;
+      const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
+
+      // Place + above ring center and - below
+      item.wrap.style.left = `${sx}px`;
+      item.wrap.style.top  = `${sy}px`;
+    }
+  }
+updateStatus();
   }
 
   // Raycast
@@ -642,24 +714,8 @@
       return;
     }
 
-    // Otherwise orbit whole object (disabled in LOCK_VIEW)
-    if (!LOCK_VIEW && cryptexGroup){
-      orbiting = true,
-      orbitStart.x = e.clientX;
-      orbitStart.y = e.clientY;
-      orbitStart.ry = cryptexGroup.rotation.y;
-      orbitStart.rx = cryptexGroup.rotation.x;
-    }
-  }, { passive:false });
-
-  renderer.domElement.addEventListener("pointermove", (e) => {
-    if (activeRing){
-      // If pointer leaves the ring, stop dragging (prevents "ghost" dragging outside)
-      const hovered = pickRing(e);
-      if (hovered !== activeRing){
-        activeRing = null;
-        return;
-      }
+    // Otherwise: view is locked (no orbit)
+    return;
 
       const dy = e.clientY - dragStartY;
 
@@ -677,7 +733,7 @@
       return;
     }
 
-    if (!LOCK_VIEW && orbiting && cryptexGroup){
+    if (orbiting && cryptexGroup){
       const dx = e.clientX - orbitStart.x;
       const dy = e.clientY - orbitStart.y;
       cryptexGroup.rotation.y = orbitStart.ry + dx * 0.006;
@@ -711,7 +767,7 @@
   }, { passive:false });
 
 
-  // Wheel: if over ring -> rotate it, else zoom camera
+  // Wheel: if over ring -> rotate it, else do nothing (view locked)
   renderer.domElement.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = pickRing(e);
@@ -719,16 +775,11 @@
       applyRingIndex(r, r.userData.index + (e.deltaY > 0 ? 1 : -1));
       return;
     }
-
-    // Zoom/orbit disabled in fixed-view test mode
-    if (LOCK_VIEW) return;
-
     // zoom
     zoom.dist *= (e.deltaY > 0 ? 1.06 : 0.94);
     zoom.dist = Math.max(3.5, Math.min(40, zoom.dist));
     camera.position.set(zoom.dist * 0.85, zoom.dist * 0.40, zoom.dist);
     camera.lookAt(0,0,0);
-    camera.updateProjectionMatrix();
   }, { passive:false });
 
   // UI
