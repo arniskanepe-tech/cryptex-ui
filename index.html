@@ -30,45 +30,67 @@
     .ui button.secondary{ background:#444; }
     .ui button:disabled{ opacity:.45; cursor:not-allowed; }
 
+    /* Hide rebuild controls on small/touch screens */
+    @media (max-width:760px),(pointer:coarse){
+      #rebuild, #ringsCount, #solution, .rebuildBlock{ display:none !important; }
+    }
+
     #status{
       position:fixed; left:12px; bottom:12px;
       background:rgba(0,0,0,.60); color:#fff; padding:10px 12px; border-radius:12px;
       font-size:13px; z-index:10;
     }
-    .hint{
-      position:fixed; right:12px; bottom:12px;
-      background:rgba(255,255,255,.85); padding:10px 12px; border-radius:12px;
-      font-size:12px; max-width:460px; line-height:1.35;
-      border:1px solid rgba(0,0,0,.10);
-      z-index:10;
+
+    /* Per-ring +/- overlay */
+    #ringControls{
+      position:fixed; inset:0;
+      pointer-events:none; /* only buttons receive events */
+      z-index:20;
     }
-    .kbd{ font-weight:900; padding:1px 6px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; }
-  
-    .rebuildBar{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
-    @media (max-width:760px),(pointer:coarse){ .rebuildBar{ display:none !important; } }
+    .ringCtrl{
+      position:absolute;
+      transform: translate(-50%, -50%);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      pointer-events:none;
+    }
+    .ctrlBtn{
+      pointer-events:auto;
+      width:34px; height:34px;
+      border-radius:10px;
+      border:1px solid rgba(0,0,0,.18);
+      background:rgba(255,255,255,.88);
+      font-weight:900;
+      font-size:18px;
+      line-height:1;
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
+    }
   </style>
 </head>
 <body>
   <div class="ui">
     <h1>Cryptex 3D (WebGL)</h1>
     <div class="sp"></div>
-    <div class="rebuildBar">
-<div>
+
+    <div class="rebuildBlock">
       <label>Riņķu skaits</label>
       <input id="ringsCount" type="number" value="4" min="1" max="30" />
     </div>
-    <div>
+    <div class="rebuildBlock">
       <label>Solution (garums = riņķu skaits)</label>
       <input id="solution" type="text" value="A1B2" />
     </div>
+
     <button id="rebuild">Pārbūvēt</button>
-    </div>
     <button id="levelDone" class="secondary">+1 riņķis</button>
     <button id="checkBtn" disabled>Pārbaudīt</button>
   </div>
 
   <div id="status">Ievadi kodu: 0/4</div>
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="assets/cryptex-3d.js?v=final"></script>
+  <div id="ringControls"></div>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="assets/cryptex-3d.js?v=11"></script>
 </body>
 </html>
