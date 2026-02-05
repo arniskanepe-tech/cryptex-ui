@@ -679,12 +679,21 @@
   window.addEventListener("keydown", (e) => {
     if (!lastSelectedRing) return;
 
+    // Ignore key repeat so each press = exactly one detent
+    if (e.repeat) return;
+
     if (e.key === "ArrowUp"){
       e.preventDefault();
-      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) - 1);
+      const base = (typeof lastSelectedRing.userData.targetIndex === "number")
+        ? lastSelectedRing.userData.targetIndex
+        : (lastSelectedRing.userData.index || 0);
+      applyRingIndex(lastSelectedRing, base + 1);
     } else if (e.key === "ArrowDown"){
       e.preventDefault();
-      applyRingIndex(lastSelectedRing, (lastSelectedRing.userData.index||0) + 1);
+      const base = (typeof lastSelectedRing.userData.targetIndex === "number")
+        ? lastSelectedRing.userData.targetIndex
+        : (lastSelectedRing.userData.index || 0);
+      applyRingIndex(lastSelectedRing, base - 1);
     }
   }, { passive:false });
 
