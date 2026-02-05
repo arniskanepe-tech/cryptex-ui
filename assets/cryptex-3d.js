@@ -28,13 +28,59 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   fill.position.set(-6, 2, -3);
   scene.add(fill);
 
-  // === Cryptex body ===
-  const body = createCryptexBody();
-  scene.add(body);
+  // === Body ===
+  scene.add(createCryptexBody());
 
-  // === Dial rings ===
+  // === Rings ===
+  const SYMBOLS_PER_RING = 10;
+  const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
+
   const rings = createRings();
   rings.forEach(r => scene.add(r));
+
+  let activeRing = 0;
+
+  updateActiveRingVisual();
+
+  // === Keyboard ===
+  window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+
+    switch (e.key) {
+      case "ArrowLeft":
+        activeRing = Math.max(0, activeRing - 1);
+        updateActiveRingVisual();
+        break;
+
+      case "ArrowRight":
+        activeRing = Math.min(rings.length - 1, activeRing + 1);
+        updateActiveRingVisual();
+        break;
+
+      case "ArrowUp":
+        rotateRing(rings[activeRing], +1);
+        break;
+
+      case "ArrowDown":
+        rotateRing(rings[activeRing], -1);
+        break;
+    }
+  });
+
+  function rotateRing(ring, dir) {
+    ring.userData.index =
+      (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
+
+    ring.rotation.z = ring.userData.index * STEP_ANGLE;
+  }
+
+  function updateActiveRingVisual() {
+    rings.forEach((r, i) => {
+      r.children[0].material.color.set(
+        i === activeRing ? 0x5a6072 : 0x3a3f4d
+      );
+    });
+  }
 
   function resize() {
     const w = window.innerWidth;
@@ -55,74 +101,41 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   // ---------- helpers ----------
 
   function createCryptexBody() {
-    const length = 8.0;
-    const radius = 1.05;
-
-    const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
+    const geom = new THREE.CylinderGeometry(1.05, 1.05, 8, 48, 1);
     geom.rotateZ(Math.PI / 2);
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x2b2f3a,
-      roughness: 0.55,
-      metalness: 0.35,
-    });
+    const mesh = new THREE.Mesh(
+      geom,
+      new THREE.MeshStandardMaterial({
+        color: 0x2b2f3a,
+        roughness: 0.55,
+        metalness: 0.35,
+      })
+    );
 
-    const mesh = new THREE.Mesh(geom, mat);
-
-    const capGeom = new THREE.TorusGeometry(radius * 0.98, 0.06, 16, 64);
-    capGeom.rotateY(Math.PI / 2);
-
-    const capMat = new THREE.MeshStandardMaterial({
-      color: 0x141824,
-      roughness: 0.65,
-      metalness: 0.2,
-    });
-
-    const leftCap = new THREE.Mesh(capGeom, capMat);
-    leftCap.position.x = -length / 2;
-
-    const rightCap = new THREE.Mesh(capGeom, capMat);
-    rightCap.position.x = length / 2;
-
-    const group = new THREE.Group();
-    group.add(mesh, leftCap, rightCap);
-    return group;
+    return mesh;
   }
 
   function createRings() {
     const ringCount = 4;
-
-    const ringWidth = 0.8;     // 2× platāks nekā “parasts”
-    const ringRadius = 1.15;
+    const ringWidth = 0.8;
+    const radius = 1.15;
     const gap = 0.12;
 
-    const totalWidth =
+    const total =
       ringCount * ringWidth + (ringCount - 1) * gap;
+    const startX = -total / 2 + ringWidth / 2;
 
-    const startX = -totalWidth / 2 + ringWidth / 2;
-
-    const rings = [];
-
-    for (let i = 0; i < ringCount; i++) {
-      const ring = createDialRing(ringRadius, ringWidth);
+    return Array.from({ length: ringCount }, (_, i) => {
+      const ring = createDialRing(radius, ringWidth);
       ring.position.x = startX + i * (ringWidth + gap);
-      rings.push(ring);
-    }
-
-    return rings;
+      ring.userData.index = 0;
+      return ring;
+    });
   }
 
   function createDialRing(radius, width) {
-    const geom = new THREE.CylinderGeometry(
-      radius,
-      radius,
-      width,
-      64,
-      1,
-      false
-    );
-
-    // cilindrs guļ pa X asi
+    const geom = new THREE.CylinderGeometry(radius, radius, width, 64, 1);
     geom.rotateZ(Math.PI / 2);
 
     const mat = new THREE.MeshStandardMaterial({
@@ -132,10 +145,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
 
     const mesh = new THREE.Mesh(geom, mat);
-
     const group = new THREE.Group();
     group.add(mesh);
-
     return group;
   }
 })();
