@@ -3,123 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cryptex 3D (WebGL)</title>
-
+  <title>Cryptex 3D</title>
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:#f5f5f5; overflow:hidden; }
-
-    #c { position:fixed; inset:0; width:100vw; height:100vh; display:block; z-index:0; background:#f5f5f5; }
-
-    .ui{
-      position:fixed; left:0; top:0; right:0;
-      padding:12px 14px; box-sizing:border-box;
-      display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
-      background: linear-gradient(180deg, rgba(245,245,245,.96), rgba(245,245,245,.70), rgba(245,245,245,0));
-      backdrop-filter: blur(6px);
-      z-index:10;
-    }
-    .ui h1{ margin:0; font-size:40px; font-weight:900; }
-    .ui label{ font-size:12px; opacity:.75; display:block; margin-bottom:4px; }
-    .ui input{ padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.18); min-width:180px; }
-    .ui input[type="number"]{ min-width:90px; width:90px; }
-    .ui button{ padding:10px 14px; border-radius:14px; border:0; background:#111; color:#fff; font-weight:800; box-shadow:0 10px 18px rgba(0,0,0,.18); }
-    .ui button.secondary{ background:#444; }
-    .sp{ flex:1; min-width:10px; }
-
-    @media (max-width:760px),(pointer:coarse){
-      .rebuildBlock, #rebuild{ display:none !important; }
-      .ui h1{ font-size:28px; }
-    }
-
-    #status{
-      position:fixed; left:12px; bottom:12px;
-      background:rgba(0,0,0,.60); color:#fff;
-      padding:10px 12px; border-radius:12px; font-size:13px;
-      z-index:10;
-    }
-
-    /* DEBUG overlay */
-    #dbg{
-      position:fixed; left:12px; top:92px;
-      max-width:min(740px, calc(100vw - 24px));
-      max-height:45vh;
-      overflow:auto;
-      background:rgba(120,0,0,.88);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:12px;
-      font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      z-index:9999;
-      white-space:pre-wrap;
-    }
-    #dbg.ok{ background:rgba(0,90,0,.75); }
+    html, body { height: 100%; margin: 0; background:#0b0d12; }
+    canvas { display:block; width:100vw; height:100vh; }
   </style>
 </head>
-
 <body>
   <canvas id="c"></canvas>
 
-  <div class="ui">
-    <h1>Cryptex 3D (WebGL)</h1>
-    <div class="sp"></div>
-
-    <div class="rebuildBlock">
-      <label>Riņķu skaits</label>
-      <input id="ringsCount" type="number" value="4" min="1" max="30" />
-    </div>
-
-    <div class="rebuildBlock">
-      <label>Solution (garums = riņķu skaits)</label>
-      <input id="solution" type="text" value="A1B2" />
-    </div>
-
-    <button id="rebuild">Pārbūvēt</button>
-    <button id="levelDone" class="secondary">+1 riņķis</button>
-    <button id="checkBtn" class="secondary" disabled>Pārbaudīt</button>
-  </div>
-
-  <div id="status">Ievadi kodu: 0/4</div>
-  <div id="ringControls"></div>
-
-  <div id="dbg">DBG: loading…</div>
-
-  <script>
-    const dbg = document.getElementById("dbg");
-    function logDbg(msg){
-      dbg.textContent += "\\n" + msg;
-    }
-
-    window.addEventListener("error", (e)=>{
-      logDbg("❌ window.error: " + (e.message || e.type));
-      if (e.filename) logDbg("   at " + e.filename + ":" + e.lineno + ":" + e.colno);
-      if (e.error && e.error.stack) logDbg(e.error.stack);
-    });
-
-    window.addEventListener("unhandledrejection", (e)=>{
-      logDbg("❌ unhandledrejection: " + (e.reason && (e.reason.stack || e.reason.message) || String(e.reason)));
-    });
-
-    logDbg("DBG: page ready");
-  </script>
-
-  <!-- Three.js -->
-  <script>
-    logDbg("DBG: loading Three.js…");
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script>
-    logDbg("DBG: Three.js loaded? " + (typeof THREE !== "undefined"));
-  </script>
-
-  <!-- Cryptex -->
-  <script>
-    logDbg("DBG: loading cryptex-3d.js…");
-  </script>
-  <script src="assets/cryptex-3d.js?v=dbg1"></script>
-  <script>
-    logDbg("DBG: after cryptex-3d.js (if it crashed, error shows above)");
-    dbg.classList.add("ok");
-  </script>
+  <!-- Viss WebGL kods ir assets/cryptex-3d.js -->
+  <script type="module" src="./assets/cryptex-3d.js"></script>
 </body>
 </html>
