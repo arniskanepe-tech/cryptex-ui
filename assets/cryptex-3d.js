@@ -232,7 +232,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       });
 
       // Novietojam uz ārējās (radiālās) virsmas +Y
-      label.position.set(0, plateH / 2 + 0.01, 0);
+      label.position.set(0, plateH / 2 + 0.03, 0);
 
       // Plaknei jāskatās uz ārpusi (lokāli +Y virziens),
       // tāpēc pagriežam plakni tā, lai tās normāle būtu +Y.
@@ -264,11 +264,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         map: tex,
         transparent: true,
         opacity: 1,
+        side: THREE.DoubleSide,
         depthTest: true,   // TEST: vienmēr redzams (vēlāk varam ieslēgt)
         depthWrite: false,
         polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
       });
       mats.push(mat);
     }
