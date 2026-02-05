@@ -95,11 +95,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       ring.userData.base.material.color.set(isActive ? 0x4f5668 : 0x2f3442);
 
-      // plāksnītes: aktīvajam mazliet gaišākas
       ring.userData.plates.forEach((p) => {
-        const baseColor = p.userData.baseColor; // saglabāts katrai plāksnei
+        const baseColor = p.userData.baseColor;
         const c = baseColor.clone();
-        if (isActive) c.multiplyScalar(1.25);
+        if (isActive) c.multiplyScalar(1.18);
         p.material.color.copy(c);
       });
     });
@@ -164,11 +163,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
   }
 
+  // === GALVENĀ IZMAIŅA: “lielas, biezas plāksnes” + šauras spraugas ===
   function createSegmentedRingLocalZ({ width, radius, symbols }) {
     const group = new THREE.Group();
 
-    // base cylinder
-    const baseRadius = radius - 0.06;
+    // base cylinder (mazliet mazāks, lai plāksnes izskatās “virsū”)
+    const baseRadius = radius - 0.10;
     const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
     baseGeom.rotateX(Math.PI / 2);
 
@@ -181,46 +181,49 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const base = new THREE.Mesh(baseGeom, baseMat);
     group.add(base);
 
-    // plates
+    // plates (jostas segmenti)
     const plates = [];
-    const plateW = width * 0.92;
-    const plateH = 0.28;
-    const plateT = 0.10;
-
-    const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
-
     const step = (Math.PI * 2) / symbols;
+
+    // Izskata parametri (vari droši vēlāk pateikt “vairāk/mazāk”)
+    const plateW = width * 0.96;   // pa kripteksa asi (Z lokāli)
+    const plateH = 0.18;          // radiālais “augstums” (mazāks nekā iepriekš)
+    const plateT = 0.62;          // tangenciālais biezums (LIELS, lai ir “josta”)
+    const gapT   = 0.08;          // “spraugas” sajūta starp segmentiem
+
+    // Nedaudz mazāks radius, lai “biezā” plāksne neizlec pārāk tālu
+    const ringR = radius + plateH * 0.30;
+
+    // Box: (tangence, radiāli, ass)
+    const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
 
     for (let s = 0; s < symbols; s++) {
       const a = s * step;
 
-      // katrai plāksnei savs mats (lai krāsas atšķiras)
       const mat = new THREE.MeshStandardMaterial({
         roughness: 0.45,
-        metalness: 0.25,
+        metalness: 0.22,
       });
 
       const p = new THREE.Mesh(plateGeom, mat);
 
-      // pozīcija pa apli
-      const r = radius + plateH * 0.35;
-      p.position.x = Math.cos(a) * r;
-      p.position.y = Math.sin(a) * r;
+      // pozīcija uz apļa
+      p.position.x = Math.cos(a) * ringR;
+      p.position.y = Math.sin(a) * ringR;
 
-      // tangenciāli
+      // orientācija tangenciāli
       p.rotation.z = a + Math.PI / 2;
 
-      // ===== KRĀSOŠANA TESTAM =====
-      // Gradient + "marķieris" (s==0) lai uzreiz redzētu rotāciju
-      const t = s / (symbols - 1); // 0..1
+      // “spraugas” efekts: mazliet samazinām mērogu tangences virzienā,
+      // lai starp segmentiem būtu “šķirba”
+      p.scale.x = (plateT - gapT) / plateT;
 
-      // tumšs -> gaišāks pelēks
-      const c = new THREE.Color().setHSL(0.62, 0.12, 0.28 + 0.22 * t);
+      // krāsas tests (gradient + marķieris)
+      const t = s / (symbols - 1);
+      const c = new THREE.Color().setHSL(0.62, 0.10, 0.26 + 0.18 * t);
+      if (s === 0) c.setHSL(0.10, 0.55, 0.62); // marķieris
 
-      // marķieris — viena plāksne izteikti gaišāka
-      if (s === 0) c.setHSL(0.10, 0.55, 0.62); // silts “bēšīgs” marķieris
-
-      p.userData.baseColor = c; // saglabājam, lai aktīvajam varam pastiprināt
+      p.userData.baseColor = c;
       p.material.color.copy(c);
 
       plates.push(p);
