@@ -335,7 +335,12 @@
 
     const from = ring.rotation.x;
     const step = ring.userData.step || ((Math.PI*2)/(ring.userData.count||ALPHABET.length));
-    const to = -idx * step;
+    let to = -idx * step;
+    // Avoid the "fast reroll" when wrapping last↔first by choosing
+    // the equivalent angle closest to the current rotation.
+    const TWO_PI = Math.PI * 2;
+    const k = Math.round((from - to) / TWO_PI);
+    to += k * TWO_PI;
     ring.userData.targetIndex = idx;
     ring.userData.index = idx; // logical index
     ring.userData.anim = { from, to, t0: now, dur: 180 };
