@@ -35,11 +35,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   cryptex.add(createCryptexBodyLocalZ());
 
-  // Rings (segmented)
+  // Rings
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  const rings = createRingsLocalZ({ ringCount: 4, symbols: SYMBOLS_PER_RING });
+  // Prebuild digit textures 0..9 once (perf)
+  const digitMats = buildDigitMaterials(THREE, {
+    color: "#F3F5FF",        // cipars
+    outline: "rgba(0,0,0,.55)",
+    bg: "rgba(0,0,0,0)",     // caurspīdīgs fons
+    font: "700 96px system-ui, -apple-system, Segoe UI, Roboto, Arial",
+  });
+
+  const rings = createRingsLocalZ({
+    ringCount: 4,
+    symbols: SYMBOLS_PER_RING,
+    digitMats,
+  });
   rings.forEach(r => cryptex.add(r));
 
   let activeRing = 0;
@@ -98,8 +110,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       ring.userData.plates.forEach((p) => {
         const baseColor = p.userData.baseColor;
         const c = baseColor.clone();
-        if (isActive) c.multiplyScalar(1.18);
+        if (isActive) c.multiplyScalar(1.15);
         p.material.color.copy(c);
+
+        // ciparu plāksnītēm varam nedaudz pastiprināt opacity aktīvajam
+        if (p.userData.label) {
+          p.userData.label.material.opacity = isActive ? 1.0 : 0.92;
+        }
       });
     });
   }
@@ -142,7 +159,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return new THREE.Mesh(geom, mat);
   }
 
-  function createRingsLocalZ({ ringCount, symbols }) {
+  function createRingsLocalZ({ ringCount, symbols, digitMats }) {
     const ringWidth = 0.8;
     const ringRadius = 1.15;
     const gap = 0.12;
@@ -155,6 +172,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         width: ringWidth,
         radius: ringRadius,
         symbols,
+        digitMats,
       });
 
       ring.position.z = startZ + i * (ringWidth + gap);
@@ -163,11 +181,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
   }
 
-  // === GALVENĀ IZMAIŅA: “lielas, biezas plāksnes” + šauras spraugas ===
-  function createSegmentedRingLocalZ({ width, radius, symbols }) {
+  function createSegmentedRingLocalZ({ width, radius, symbols, digitMats }) {
     const group = new THREE.Group();
 
-    // base cylinder (mazliet mazāks, lai plāksnes izskatās “virsū”)
+    // base cylinder
     const baseRadius = radius - 0.10;
     const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
     baseGeom.rotateX(Math.PI / 2);
@@ -181,17 +198,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const base = new THREE.Mesh(baseGeom, baseMat);
     group.add(base);
 
-    // plates (jostas segmenti)
+    // plates
     const plates = [];
     const step = (Math.PI * 2) / symbols;
 
-    // Izskata parametri (vari droši vēlāk pateikt “vairāk/mazāk”)
-    const plateW = width * 0.96;   // pa kripteksa asi (Z lokāli)
-    const plateH = 0.18;          // radiālais “augstums” (mazāks nekā iepriekš)
-    const plateT = 0.62;          // tangenciālais biezums (LIELS, lai ir “josta”)
-    const gapT   = 0.08;          // “spraugas” sajūta starp segmentiem
+    const plateW = width * 0.96; // ass virziens (Z)
+    const plateH = 0.18;        // radiāli
+    const plateT = 0.62;        // tangenciāli (biezums)
+    const gapT = 0.08;          // “šķirba” starp segmentiem
 
-    // Nedaudz mazāks radius, lai “biezā” plāksne neizlec pārāk tālu
     const ringR = radius + plateH * 0.30;
 
     // Box: (tangence, radiāli, ass)
@@ -214,17 +229,32 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       // orientācija tangenciāli
       p.rotation.z = a + Math.PI / 2;
 
-      // “spraugas” efekts: mazliet samazinām mērogu tangences virzienā,
-      // lai starp segmentiem būtu “šķirba”
+      // šķirba: sašaurinām tangences virzienā
       p.scale.x = (plateT - gapT) / plateT;
 
-      // krāsas tests (gradient + marķieris)
+      // krāsa (neitrāla + marķieris s==0)
       const t = s / (symbols - 1);
-      const c = new THREE.Color().setHSL(0.62, 0.10, 0.26 + 0.18 * t);
+      const c = new THREE.Color().setHSL(0.62, 0.10, 0.26 + 0.10 * t);
       if (s === 0) c.setHSL(0.10, 0.55, 0.62); // marķieris
-
       p.userData.baseColor = c;
       p.material.color.copy(c);
+
+      // === CIPARS uz plāksnes ===
+      // cipars = s (0..9)
+      const digit = s % 10;
+      const label = createDigitLabelPlane(THREE, digitMats[digit], {
+        plateT,
+        plateH,
+        plateW,
+      });
+
+      // Label novietojam uz ārējās virsmas (radiāli uz āru).
+      // Tā kā plate lokāli: X=tangence, Y=radiāli, Z=ass,
+      // ārējā virsma ir +Y.
+      label.position.y = plateH / 2 + 0.001; // mazliet virs virsmas, lai nerodas z-fighting
+      label.rotation.x = -Math.PI / 2;       // pagriežam, lai plakne “sēž” uz virsmas
+      p.add(label);
+      p.userData.label = label;
 
       plates.push(p);
       group.add(p);
@@ -232,7 +262,70 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     group.userData.base = base;
     group.userData.plates = plates;
-
     return group;
+  }
+
+  // ======= DIGIT TEXTURES =======
+
+  function buildDigitMaterials(THREE, opts) {
+    const mats = [];
+    for (let d = 0; d <= 9; d++) {
+      const tex = makeDigitTexture(THREE, String(d), opts);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: true,
+        depthWrite: false,
+      });
+      mats.push(mat);
+    }
+    return mats;
+  }
+
+  function makeDigitTexture(THREE, text, opts) {
+    const size = 256;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d");
+
+    // background (transparent by default)
+    ctx.clearRect(0, 0, size, size);
+    if (opts.bg && opts.bg !== "rgba(0,0,0,0)") {
+      ctx.fillStyle = opts.bg;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    // outline
+    ctx.font = opts.font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = opts.outline;
+    ctx.strokeText(text, size / 2, size / 2 + 2);
+
+    // fill
+    ctx.fillStyle = opts.color;
+    ctx.fillText(text, size / 2, size / 2 + 2);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  function createDigitLabelPlane(THREE, material, { plateT, plateH, plateW }) {
+    // label izmērs: lai cipars ir liels un salasāms, bet neiziet ārpus plāksnes
+    const w = Math.min(plateT * 0.82, 0.55);  // platums tangences virzienā
+    const h = plateW * 0.55;                  // augstums pa ass virzienu (vizuāli izskatās labi)
+
+    const geom = new THREE.PlaneGeometry(w, h);
+    const mesh = new THREE.Mesh(geom, material);
+    return mesh;
   }
 })();
