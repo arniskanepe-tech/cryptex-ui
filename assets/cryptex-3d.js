@@ -12,33 +12,30 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0xe7e7e7, 1);
 
-  // ===== Render kvalitāte (droši, nelauž loģiku) =====
+  // ===== SAFE render kvalitāte (neizsauc melno ekrānu) =====
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15; // 1.0..1.35 (vari mainīt)
+  renderer.toneMappingExposure = 1.12; // 1.0..1.3
   renderer.physicallyCorrectLights = true;
 
   const scene = new THREE.Scene();
-
-  // PBR reflections bez ārējiem failiem / bez RoomEnvironment
-  scene.environment = makeStudioEnvPMREM(renderer, THREE);
 
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
   camera.position.set(0, 2.4, 7.5);
   camera.lookAt(0, 0, 0);
 
-  // ===== Gaismas (uzlabots “render look”) =====
-  scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+  // ===== gaismas (uzlabots “render look”, bet safe) =====
+  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
 
-  const key = new THREE.DirectionalLight(0xffffff, 3.2);
+  const key = new THREE.DirectionalLight(0xffffff, 3.0);
   key.position.set(5.5, 7.0, 6.0);
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0xffffff, 1.3);
-  fill.position.set(-7.5, 2.2, -2.5);
+  const fill = new THREE.DirectionalLight(0xffffff, 1.2);
+  fill.position.set(-7.0, 2.0, -3.0);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0xffffff, 1.4);
+  const rim = new THREE.DirectionalLight(0xffffff, 1.1);
   rim.position.set(-2.0, 6.0, 9.0);
   scene.add(rim);
 
@@ -59,7 +56,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
-  // ==== (1) BODY_LENGTH tiek piesiets ringiem, nevis hardcoded 8.0 ====
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
@@ -67,7 +63,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2);
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
 
-  // ==== (2) bultu Y pozīcija ====
+  // Tava izvēle (bultu līmenis)
   const CHECK_ROW_Y = 0.85;
 
   // ====== centrs (karkass) ======
@@ -247,13 +243,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const geom = new THREE.CylinderGeometry(radius, radius, length, 64, 1);
     geom.rotateX(Math.PI / 2);
 
-    // nedaudz “metal look”
+    // Safe “render look” materiāls
     const mat = new THREE.MeshPhysicalMaterial({
       color: 0x8a6b2d,
       roughness: 0.55,
-      metalness: 0.65,
-      clearcoat: 0.15,
-      clearcoatRoughness: 0.6,
+      metalness: 0.70,
+      clearcoat: 0.18,
+      clearcoatRoughness: 0.65,
     });
 
     return new THREE.Mesh(geom, mat);
@@ -285,7 +281,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x6f5524,
-      roughness: 0.78,
+      roughness: 0.80,
       metalness: 0.55,
     });
 
@@ -317,8 +313,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor.clone(),
-        roughness: 0.42,
-        metalness: 0.25,
+        roughness: 0.45,
+        metalness: 0.22,
       });
 
       const p = new THREE.Mesh(plateGeom, mat);
@@ -460,21 +456,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
     patina.repeat.set(3, 1);
 
-    // >>>>> UZLABOTS materiāls galiem (izskatās “metāliskāk”) <<<<<
+    // Uzlabots “metāls” galiem (SAFE, bez envmap)
     const goldMat = new THREE.MeshPhysicalMaterial({
       color: 0x8a6b2d,
-      metalness: 0.95,
-      roughness: 0.38,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.55,
+      metalness: 0.92,
+      roughness: 0.42,
+      clearcoat: 0.28,
+      clearcoatRoughness: 0.62,
       map: patina,
       bumpMap: ornament,
       bumpScale: 0.05,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x1d1912,
-      metalness: 0.25,
+      color: 0x2a251b,
+      metalness: 0.35,
       roughness: 0.95,
     });
 
@@ -543,15 +539,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0; // ->
     arrowL.scale.set(arrowScale, arrowScale, 1);
-    // TAVA korekcija (front/back) — atstāta
-    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
+    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset); // TAVA pozīcija
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
     arrowR.material.rotation = Math.PI; // <-
     arrowR.scale.set(arrowScale, arrowScale, 1);
-    // TAVA korekcija (front/back) — atstāta
-    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
+    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset); // TAVA pozīcija
     group.add(arrowR);
 
     return { group, arrowL, arrowR };
@@ -698,57 +692,5 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       ctx.closePath();
       ctx.stroke();
     }
-  }
-
-  // ============================================================
-  //  Studio envmap (PMREM) bez ārējiem failiem / drošs
-  // ============================================================
-
-  function makeStudioEnvPMREM(renderer, THREE) {
-    const cube = new THREE.CubeTexture([
-      makeEnvFaceCanvas(THREE, "#ffffff", "#d9d9d9"), // +X
-      makeEnvFaceCanvas(THREE, "#ffffff", "#cfcfcf"), // -X
-      makeEnvFaceCanvas(THREE, "#ffffff", "#f3f3f3"), // +Y
-      makeEnvFaceCanvas(THREE, "#bdbdbd", "#8f8f8f"), // -Y
-      makeEnvFaceCanvas(THREE, "#ffffff", "#d6d6d6"), // +Z
-      makeEnvFaceCanvas(THREE, "#ffffff", "#d0d0d0"), // -Z
-    ]);
-    cube.colorSpace = THREE.SRGBColorSpace;
-    cube.needsUpdate = true;
-
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const rt = pmrem.fromCubemap(cube);
-    pmrem.dispose();
-    cube.dispose();
-
-    return rt.texture;
-  }
-
-  function makeEnvFaceCanvas(THREE, topColor, bottomColor) {
-    const size = 64;
-    const c = document.createElement("canvas");
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext("2d");
-
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, topColor);
-    g.addColorStop(1, bottomColor);
-
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-
-    // neliels “soft highlight”
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(size * 0.65, size * 0.35, size * 0.28, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.needsUpdate = true;
-    return tex;
   }
 })();
