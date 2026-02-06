@@ -7,9 +7,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     canvas,
     antialias: true,
     powerPreference: "high-performance",
+    alpha: false,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0xe7e7e7, 1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
 
@@ -32,38 +34,37 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
 
-  // ====== izmēri ======
+  // ====== mūsu “izmēru patiesība” vienuviet ======
   const BODY_RADIUS = 1.05;
 
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
+  // ring / plate dimensijas
   const RING_COUNT = 4;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
+  // BODY_LENGTH piesiets ringiem
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
   const PLATE_H = 0.18;
-  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2);
+  const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.30 + PLATE_H / 2;
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
 
-  // bultu “rinda”
+  // bultu rinda (tava aktuālā)
   const CHECK_ROW_Y = 0.85;
 
-  // ====== ķermenis ======
+  // ====== centrs ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
 
-  // ====== gali (LATHE + stop-rings) ======
+  // ====== Dizaina gali (LATHE) ======
   const ends = createEndCapsLocalZ({
     bodyLength: BODY_LENGTH,
     outerRadius: CAPS_OUTER_R,
     checkRowY: CHECK_ROW_Y,
-    bodyRadius: BODY_RADIUS,
-    ringRadius: RING_RADIUS,
-    plateOuterRadius: PLATE_OUTER_R,
   });
   cryptex.add(ends.group);
 
@@ -152,7 +153,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   window.addEventListener("resize", resize);
   resize();
 
-  // ===== Label upright =====
+  // ===== UPRIGHT stabils =====
   const _plateWorldQ = new THREE.Quaternion();
   const _invPlateWorldQ = new THREE.Quaternion();
   const _normalWorld = new THREE.Vector3();
@@ -212,30 +213,24 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function tick() {
-    try {
-      keepLabelsUpright();
-    } catch (e) {
-      console.error("keepLabelsUpright error:", e);
-    }
-
+    keepLabelsUpright();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
 
   // ---------- helpers ----------
-
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
   }
 
   function createCryptexBodyLocalZ(length, radius) {
-    const geom = new THREE.CylinderGeometry(radius, radius, length, 64, 1);
+    const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
     geom.rotateX(Math.PI / 2);
 
     const mat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      roughness: 0.78,
+      roughness: 0.75,
       metalness: 0.45,
     });
 
@@ -263,13 +258,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const group = new THREE.Group();
 
     const baseRadius = radius - 0.10;
-    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 72, 1);
+    const baseGeom = new THREE.CylinderGeometry(
+      baseRadius,
+      baseRadius,
+      width,
+      64,
+      1
+    );
     baseGeom.rotateX(Math.PI / 2);
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x6f5524,
-      roughness: 0.82,
-      metalness: 0.50,
+      roughness: 0.8,
+      metalness: 0.5,
     });
 
     const base = new THREE.Mesh(baseGeom, baseMat);
@@ -283,7 +284,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const plateT = 0.62;
     const gapT = 0.08;
 
-    const ringR = radius + plateH * 0.30;
+    const ringR = radius + plateH * 0.3;
     const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
 
     const EPS = 0.006;
@@ -295,12 +296,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const a = s * step;
 
       const t = s / (symbols - 1);
-      const baseColor = new THREE.Color().setHSL(0.62, 0.10, 0.26 + 0.10 * t);
-      if (s === 0) baseColor.setHSL(0.10, 0.55, 0.62);
+      const baseColor = new THREE.Color().setHSL(0.62, 0.1, 0.26 + 0.1 * t);
+      if (s === 0) baseColor.setHSL(0.1, 0.55, 0.62);
 
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor.clone(),
-        roughness: 0.46,
+        roughness: 0.45,
         metalness: 0.22,
       });
 
@@ -329,7 +330,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       const labelPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(
-          Math.min(plateT * 0.86, 0.60),
+          Math.min(plateT * 0.86, 0.6),
           Math.min(plateW * 0.72, 0.58)
         ),
         labelMat
@@ -368,7 +369,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return group;
   }
 
-  function makeDigitTexture(THREE, text, baseColor) {
+  function makeDigitTexture(THREE, text) {
     const size = 256;
     const c = document.createElement("canvas");
     c.width = size;
@@ -376,10 +377,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const ctx = c.getContext("2d");
 
     ctx.clearRect(0, 0, size, size);
-
-    ctx.fillStyle = "rgba(255,255,255,0.00)";
-    roundRect(ctx, 28, 28, size - 56, size - 56, 22);
-    ctx.fill();
 
     ctx.font = "900 148px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
@@ -401,35 +398,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return tex;
   }
 
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
   // ============================================================
-  //  END CAPS (HARDCORE LATHE + STOP-RING)
+  //  END CAPS (LATHE) — hardcore profils (īsāks slīpums + knife-edge + fiksators)
   // ============================================================
 
-  function createEndCapsLocalZ({
-    bodyLength,
-    outerRadius,
-    checkRowY,
-    bodyRadius,
-    ringRadius,
-    plateOuterRadius,
-  }) {
+  function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
 
-    const overlap = 0.012;
+    const overlap = 0.015;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
 
-    // tekstūras
     const ornament = makeOrnamentTexture(THREE);
     ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
     ornament.repeat.set(6, 1);
@@ -440,54 +419,26 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      metalness: 0.80,
-      roughness: 0.58,
+      metalness: 0.78,
+      roughness: 0.62,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.060,
+      bumpScale: 0.055,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x201c15,
+      color: 0x2a251b,
       metalness: 0.35,
-      roughness: 0.96,
+      roughness: 0.95,
     });
 
-    // ===== STOP-RING pie “sejas” (mehāniska atdure) =====
-    // vizuāli: plāns gredzens + vēl plānāks “pakāpiens”
-    const stopOuterR = Math.max(plateOuterRadius * 0.985, ringRadius * 1.02);
-    const stopH1 = 0.065;
-    const stopH2 = 0.030;
-
-    const stopGeom1 = new THREE.CylinderGeometry(stopOuterR, stopOuterR, stopH1, 96, 1);
-    stopGeom1.rotateX(Math.PI / 2);
-
-    const stopGeom2 = new THREE.CylinderGeometry(stopOuterR * 0.955, stopOuterR * 0.955, stopH2, 96, 1);
-    stopGeom2.rotateX(Math.PI / 2);
-
-    const stopL1 = new THREE.Mesh(stopGeom1, goldMat);
-    stopL1.position.z = leftFace + stopH1 / 2 + 0.002;
-    group.add(stopL1);
-
-    const stopL2 = new THREE.Mesh(stopGeom2, goldMat);
-    stopL2.position.z = leftFace + stopH1 + stopH2 / 2 + 0.003;
-    group.add(stopL2);
-
-    const stopR1 = new THREE.Mesh(stopGeom1, goldMat);
-    stopR1.position.z = rightFace - stopH1 / 2 - 0.002;
-    group.add(stopR1);
-
-    const stopR2 = new THREE.Mesh(stopGeom2, goldMat);
-    stopR2.position.z = rightFace - stopH1 - stopH2 / 2 - 0.003;
-    group.add(stopR2);
-
-    // ===== LATHE gala profils (asākas kantes, īsāks slīpums) =====
+    // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
-    capGeom.rotateX(Math.PI / 2); // Y->Z
+    capGeom.rotateX(Math.PI / 2); // Y -> Z
 
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
-    capL.scale.z = -1; // spogulis uz kreiso pusi
+    capL.scale.z = -1; // spogulis: lai “iet uz kreiso pusi”
     group.add(capL);
 
     const capR = new THREE.Mesh(capGeom, goldMat);
@@ -495,16 +446,22 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.scale.z = 1;
     group.add(capR);
 
-    // iekšējais “tumšais disks” pašā galā (kā tev bija, bet piesiets capLen)
-    const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.60, outerRadius * 0.60, 0.06, 72, 1);
+    // iekšējais “tumšais disks”
+    const innerDiskGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.62,
+      outerRadius * 0.62,
+      0.06,
+      60,
+      1
+    );
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerL.position.z = leftFace - overlap - capLen - 0.03;
+    innerL.position.z = leftFace - overlap - capLen - 0.02;
     group.add(innerL);
 
     const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerR.position.z = rightFace + overlap + capLen + 0.03;
+    innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
     // ===== bultas (sprites) =====
@@ -535,66 +492,56 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function buildCapLatheGeometry(outerRadius) {
-    // HARDCORE profils:
-    // - ļoti ātrs kritums uz “kaklu”
-    // - asākas gropes (īsi posmi ar strauju radius maiņu)
-    // - īss taper uz pēdējo mazāko riņķi
-    //
-    // Lathe ass: Y (0 pie sejas, +Y uz āru)
-    const OR = outerRadius;
-
-    // kopgarums (īsāks nekā iepriekš)
-    const capLen = 1.05;
-
-    // punktu princips:
-    // [radius, y] – mazs y solis = asāka kante
+    // Y=0 ir pie body sejas (pie ringiem). Y aug uz āru.
     const pts = [
-      // pie sejas (blakus stop-ring) – mazs chamfer
-      new THREE.Vector2(OR * 1.00, 0.00),
-      new THREE.Vector2(OR * 0.99, 0.03),
+      new THREE.Vector2(outerRadius * 1.00, 0.0),
+      new THREE.Vector2(outerRadius * 1.00, 0.10),
 
-      // 1. pakāpiens (ridge)
-      new THREE.Vector2(OR * 1.02, 0.06),
-      new THREE.Vector2(OR * 1.02, 0.10),
+      // Knife-edge groove #1
+      new THREE.Vector2(outerRadius * 0.92, 0.115),
+      new THREE.Vector2(outerRadius * 1.00, 0.130),
 
-      // straujš kritums uz “kaklu”
-      new THREE.Vector2(OR * 0.86, 0.125),
-      new THREE.Vector2(OR * 0.86, 0.155),
+      // Knife-edge groove #2
+      new THREE.Vector2(outerRadius * 0.90, 0.150),
+      new THREE.Vector2(outerRadius * 1.00, 0.170),
 
-      // groove + ridge (asas pārejas)
-      new THREE.Vector2(OR * 0.80, 0.175),
-      new THREE.Vector2(OR * 0.80, 0.215),
+      // Straujš kritums (saīsināts slīpums)
+      new THREE.Vector2(outerRadius * 0.78, 0.26),
 
-      new THREE.Vector2(OR * 0.92, 0.235),
-      new THREE.Vector2(OR * 0.92, 0.285),
+      // Stop-ring (izteikts pakāpiens)
+      new THREE.Vector2(outerRadius * 0.86, 0.32),
+      new THREE.Vector2(outerRadius * 0.86, 0.40),
 
-      // otra gropīte
-      new THREE.Vector2(OR * 0.84, 0.305),
-      new THREE.Vector2(OR * 0.84, 0.345),
+      // Īss slīpums uz “fiksatoru”
+      new THREE.Vector2(outerRadius * 0.68, 0.52),
 
-      // īss taper uz mazāko “pēdējo riņķi”
-      new THREE.Vector2(OR * 0.70, 0.43),
-      new THREE.Vector2(OR * 0.66, 0.52),
+      // “Fiksators”
+      new THREE.Vector2(outerRadius * 0.62, 0.60),
+      new THREE.Vector2(outerRadius * 0.62, 0.74),
 
-      // gala “bulba” + beigu disks
-      new THREE.Vector2(OR * 0.74, 0.62),
-      new THREE.Vector2(OR * 0.68, 0.72),
-      new THREE.Vector2(OR * 0.60, 0.86),
+      // Pēdējais mazais gredzens / gals
+      new THREE.Vector2(outerRadius * 0.52, 0.78),
+      new THREE.Vector2(outerRadius * 0.52, 0.92),
 
-      // pašas beigas (mazs chamfer)
-      new THREE.Vector2(OR * 0.58, capLen - 0.03),
-      new THREE.Vector2(OR * 0.56, capLen),
+      // Aizveram uz asi
+      new THREE.Vector2(0.001, 0.92),
     ];
 
-    const geom = new THREE.LatheGeometry(pts, 96);
-    geom.computeVertexNormals();
+    const radialSegments = 8; // 6–8 dod “sešstūra sajūtu”
+    const geom = new THREE.LatheGeometry(pts, radialSegments);
+
+    // capLen = pēdējais Y (attālums uz āru)
+    const capLen = pts[pts.length - 1].y;
+
     return { geom, capLen };
   }
 
   function makeOrnamentTexture(THREE) {
-    const w = 512, h = 128;
+    const w = 512,
+      h = 128;
     const c = document.createElement("canvas");
-    c.width = w; c.height = h;
+    c.width = w;
+    c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "rgb(128,128,128)";
@@ -631,7 +578,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const midY = h * 0.52;
       ctx.beginPath();
       ctx.moveTo(x + 14, midY - 2);
-      ctx.bezierCurveTo(x + 38, midY - 30, x + 68, midY + 30, x + 92, midY - 2);
+      ctx.bezierCurveTo(
+        x + 38,
+        midY - 30,
+        x + 68,
+        midY + 30,
+        x + 92,
+        midY - 2
+      );
       ctx.stroke();
     }
 
@@ -642,9 +596,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function makePatinaTexture(THREE) {
-    const w = 512, h = 256;
+    const w = 512,
+      h = 256;
     const c = document.createElement("canvas");
-    c.width = w; c.height = h;
+    c.width = w;
+    c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "#8A6B2D";
@@ -686,7 +642,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function makeArrowTexture(THREE) {
     const size = 256;
     const c = document.createElement("canvas");
-    c.width = size; c.height = size;
+    c.width = size;
+    c.height = size;
     const ctx = c.getContext("2d");
 
     ctx.clearRect(0, 0, size, size);
@@ -707,30 +664,30 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tex.needsUpdate = true;
     return tex;
 
-    function drawArrow(ctx, dx, dy) {
-      ctx.beginPath();
-      ctx.moveTo(-70 + dx, -40 + dy);
-      ctx.lineTo(40 + dx, -40 + dy);
-      ctx.lineTo(40 + dx, -70 + dy);
-      ctx.lineTo(90 + dx, 0 + dy);
-      ctx.lineTo(40 + dx, 70 + dy);
-      ctx.lineTo(40 + dx, 40 + dy);
-      ctx.lineTo(-70 + dx, 40 + dy);
-      ctx.closePath();
-      ctx.fill();
+    function drawArrow(ctx2, dx, dy) {
+      ctx2.beginPath();
+      ctx2.moveTo(-70 + dx, -40 + dy);
+      ctx2.lineTo(40 + dx, -40 + dy);
+      ctx2.lineTo(40 + dx, -70 + dy);
+      ctx2.lineTo(90 + dx, 0 + dy);
+      ctx2.lineTo(40 + dx, 70 + dy);
+      ctx2.lineTo(40 + dx, 40 + dy);
+      ctx2.lineTo(-70 + dx, 40 + dy);
+      ctx2.closePath();
+      ctx2.fill();
     }
 
-    function strokeArrow(ctx) {
-      ctx.beginPath();
-      ctx.moveTo(-70, -40);
-      ctx.lineTo(40, -40);
-      ctx.lineTo(40, -70);
-      ctx.lineTo(90, 0);
-      ctx.lineTo(40, 70);
-      ctx.lineTo(40, 40);
-      ctx.lineTo(-70, 40);
-      ctx.closePath();
-      ctx.stroke();
+    function strokeArrow(ctx2) {
+      ctx2.beginPath();
+      ctx2.moveTo(-70, -40);
+      ctx2.lineTo(40, -40);
+      ctx2.lineTo(40, -70);
+      ctx2.lineTo(90, 0);
+      ctx2.lineTo(40, 70);
+      ctx2.lineTo(40, 40);
+      ctx2.lineTo(-70, 40);
+      ctx2.closePath();
+      ctx2.stroke();
     }
   }
 })();
