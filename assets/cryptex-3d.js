@@ -533,7 +533,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ];
 
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
-    const radialSegments = 8; // (6–10) varianti: 6 = vissešstūrīgākais
+    const radialSegments = 14; // (6–10) varianti: 6 = vissešstūrīgākais
     const geom = new THREE.LatheGeometry(pts, radialSegments);
 
     const capLen = pts[pts.length - 1].y;
