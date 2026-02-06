@@ -9,7 +9,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     powerPreference: "high-performance",
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x0b0d12, 1);
+  renderer.setClearColor(0xe7e7e7, 1);
 
   const scene = new THREE.Scene();
 
