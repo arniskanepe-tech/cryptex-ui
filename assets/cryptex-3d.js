@@ -408,7 +408,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
 
-    const overlap = 0.015;
+    const overlap = 0.06;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
 
@@ -448,6 +448,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.position.z = rightFace + overlap;
     capR.scale.z = 1;
     group.add(capR);
+
+    // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
+    const collarLen = 0.10; // biezums gar asi
+    const collarR = outerRadius * 0.99;
+
+    const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
+    collarGeom.rotateX(Math.PI / 2);
+
+    const collarL = new THREE.Mesh(collarGeom, darkMat);
+    collarL.position.z = leftFace - collarLen / 2 - overlap * 0.25;
+    group.add(collarL);
+
+    const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
+    collarRMesh.position.z = rightFace + collarLen / 2 + overlap * 0.25;
+    group.add(collarRMesh);
 
     // iekšējais “tumšais disks”
     const innerDiskGeom = new THREE.CylinderGeometry(
@@ -533,7 +548,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ];
 
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
-    const radialSegments = 14; // (6–10) varianti: 6 = vissešstūrīgākais
+    const radialSegments = 8; // (6–10) varianti: 6 = vissešstūrīgākais
     const geom = new THREE.LatheGeometry(pts, radialSegments);
 
     const capLen = pts[pts.length - 1].y;
