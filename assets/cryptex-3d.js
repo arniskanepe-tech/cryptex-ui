@@ -49,11 +49,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP; // tieši tāds pats “gap” kā starp diskiem
 
   const PLATE_H = 0.18; // radiālais biezums (plateH)
-  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2); // ringR + plateH/2
+  const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.30 + PLATE_H / 2; // ringR + plateH/2
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.10; // neliels “apvalka” rezervs (lai gals aptver plāksnes)
 
   // ==== (2) bultu Y pozīcija: nedaudz augstāk, lai trāpa tieši “vidējā rindā” ====
-  // ja gribi vēl augstāk/zemāk, maini šeit (0.18..0.32 ir saprātīgi)
+  // ja gribi vēl augstāk/zemāk, maini šeit (0.18..0.32..0.65 ir saprātīgi)
   const CHECK_ROW_Y = 0.56;
 
   // ====== centrs (karkass) ======
@@ -268,8 +268,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x6f5524,
-      roughness: 0.80,
-      metalness: 0.50,
+      roughness: 0.8,
+      metalness: 0.5,
     });
 
     const base = new THREE.Mesh(baseGeom, baseMat);
@@ -471,7 +471,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     taperGeom.rotateX(Math.PI / 2);
 
-    const tipGeom = new THREE.CylinderGeometry(outerRadius * 0.50, outerRadius * 0.62, tipLen, 60, 1);
+    const tipGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.50,
+      outerRadius * 0.62,
+      tipLen,
+      60,
+      1
+    );
     tipGeom.rotateX(Math.PI / 2);
 
     const sleeveL = new THREE.Mesh(sleeveGeom, goldMat);
@@ -498,7 +504,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tipR.position.z = zRightTip;
     group.add(tipR);
 
-    const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.62, outerRadius * 0.62, 0.06, 60, 1);
+    const innerDiskGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.62,
+      outerRadius * 0.62,
+      0.06,
+      60,
+      1
+    );
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
@@ -509,33 +521,82 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerR.position.z = zRightTip + tipLen / 2 + 0.02;
     group.add(innerR);
 
-    // ===== bultas (sprites) =====
-    const arrowTex = makeArrowTexture(THREE);
-    const arrowMat = new THREE.SpriteMaterial({
-      map: arrowTex,
-      transparent: true,
-      opacity: 0.95,
-      depthTest: false,
-    });
+    // ============================================================
+    //  BULTAS: IEGRAVĒTAS UZ SLEEVE VIRSMAS (NEVIS sprites)
+    // ============================================================
 
-    const arrowScale = 0.65;
+    const arrowTexBase = makeArrowTexture(THREE);
+    arrowTexBase.wrapS = arrowTexBase.wrapT = THREE.ClampToEdgeWrapping;
 
-    // ==== FIX: bultas sēž tieši pie body gala + paceļam uz checkRowY ====
-    const arrowInset = 0.06;
+    function makeEngravedMat(tex) {
+      return new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.92,
+        color: 0x1b1a16, // iegravējuma tonis
+        metalness: 0.15,
+        roughness: 0.9,
+        depthTest: true,
+        depthWrite: false,
+      });
+    }
 
-    const arrowL = new THREE.Sprite(arrowMat.clone());
-    arrowL.material.rotation = 0; // ->
-    arrowL.scale.set(arrowScale, arrowScale, 1);
-    arrowL.position.set(0, checkRowY, leftFace - arrowInset);
-    group.add(arrowL);
+    function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
+      const r = outerRadius;
+      const y = checkRowY;
 
-    const arrowR = new THREE.Sprite(arrowMat.clone());
-    arrowR.material.rotation = Math.PI; // <-
-    arrowR.scale.set(arrowScale, arrowScale, 1);
-    arrowR.position.set(0, checkRowY, rightFace + arrowInset);
-    group.add(arrowR);
+      // drošības robežas
+      const yy = Math.max(-r + 0.001, Math.min(r - 0.001, y));
 
-    return { group, arrowL, arrowR };
+      // uz cilindriskās virsmas (ņemam priekšpusi ar +X)
+      const x = Math.sqrt(Math.max(0, r * r - yy * yy));
+      const radial = new THREE.Vector3(x, yy, 0).normalize();
+
+      const EPS = 0.008; // virs virsmas, lai nav mirgošanas
+      const pos = radial.clone().multiplyScalar(r + EPS);
+
+      // bultas izmērs (uz gala virsmas)
+      const aw = 0.72;
+      const ah = 0.40;
+      const geom = new THREE.PlaneGeometry(aw, ah);
+
+      // labajā pusē apgriežam tekstūru, lai kļūst par "<-"
+      let tex = arrowTexBase;
+      if (!isLeft) {
+        tex = arrowTexBase.clone();
+        tex.repeat.x = -1;
+        tex.offset.x = 1;
+        tex.needsUpdate = true;
+      }
+
+      const mat = makeEngravedMat(tex);
+      const plane = new THREE.Mesh(geom, mat);
+
+      // pozīcija uz sleeve virsmas sleeve-lokālajās koordinātās
+      plane.position.copy(pos);
+
+      // orientācija:
+      // normal = radial (uz āru), "virziens" pa asi uz centru: left => +Z, right => -Z
+      const normal = radial.clone();
+      const dirToCenter = isLeft ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+
+      const right = dirToCenter.clone().normalize();
+      const up = new THREE.Vector3().crossVectors(normal, right).normalize();
+
+      // ja gadās degenerācija
+      if (up.lengthSq() < 1e-6) up.set(0, 1, 0);
+
+      const m = new THREE.Matrix4().makeBasis(right, up, normal);
+      plane.quaternion.setFromRotationMatrix(m);
+
+      sleeveMesh.add(plane);
+      return plane;
+    }
+
+    const engravedArrowL = addEngravedArrowOnSleeve(sleeveL, true);
+    const engravedArrowR = addEngravedArrowOnSleeve(sleeveR, false);
+
+    return { group, engravedArrowL, engravedArrowR };
   }
 
   function makeOrnamentTexture(THREE) {
