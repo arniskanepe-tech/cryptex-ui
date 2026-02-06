@@ -1,4 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { RoomEnvironment } from "https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
 
 (function boot() {
   const canvas = document.getElementById("c");
@@ -8,22 +9,41 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     antialias: true,
     powerPreference: "high-performance",
   });
+
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+  // ===== RENDER UZLABOJUMI (NEAIZTIEK LOĢIKU) =====
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  // trīsam fiziskāka gaisma (metālam palīdz)
+  renderer.physicallyCorrectLights = true;
+
+  // fons
   renderer.setClearColor(0xe7e7e7, 1);
 
   const scene = new THREE.Scene();
 
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  // ===== ENVIRONMENT (HDRI imitācija bez failiem) =====
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envRT = pmrem.fromScene(new RoomEnvironment(renderer), 0.04);
+  scene.environment = envRT.texture;
+  // scene.background = envRT.texture; // ja gribi redzēt “istabas” fonu, atkomentē
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(0, 2.4, 7.5);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+  // gaismas (ar physicallyCorrectLights parasti vajag lielākas intensitātes)
+  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
 
-  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  const key = new THREE.DirectionalLight(0xffffff, 5.0);
   key.position.set(4, 6, 5);
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+  const fill = new THREE.DirectionalLight(0xffffff, 2.0);
   fill.position.set(-6, 2, -3);
   scene.add(fill);
 
@@ -38,22 +58,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  // ring / plate dimensijas (tām jābūt saskanīgām ar createSegmentedRingLocalZ)
+  // ring / plate dimensijas
   const RING_COUNT = 4;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
-  // ==== (1) BODY_LENGTH tiek piesiets ringiem, nevis hardcoded 8.0 ====
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
-  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP; // tieši tāds pats “gap” kā starp diskiem
+  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
-  const PLATE_H = 0.18; // radiālais biezums (plateH)
-  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2); // ringR + plateH/2
-  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10; // neliels “apvalka” rezervs (lai gals aptver plāksnes)
+  const PLATE_H = 0.18;
+  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2);
+  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
 
-  // ==== (2) bultu Y pozīcija: nedaudz augstāk, lai trāpa tieši “vidējā rindā” ====
-  // ja gribi vēl augstāk/zemāk, maini šeit (0.18..0.32 ir saprātīgi)
   const CHECK_ROW_Y = 0.85;
 
   // ====== centrs (karkass) ======
@@ -422,7 +439,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const taperLen = 0.85;
     const tipLen = 0.35;
 
-    // ==== FIX: gali tiek būvēti “no body gala uz āru”, nevis iekšā body ====
     const overlap = 0.015;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
@@ -519,18 +535,16 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
 
     const arrowScale = 0.65;
-
-    // ==== FIX: bultas sēž tieši pie body gala + paceļam uz checkRowY ====
     const arrowInset = 0.06;
 
     const arrowL = new THREE.Sprite(arrowMat.clone());
-    arrowL.material.rotation = 0; // ->
+    arrowL.material.rotation = 0;
     arrowL.scale.set(arrowScale, arrowScale, 1);
     arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
-    arrowR.material.rotation = Math.PI; // <-
+    arrowR.material.rotation = Math.PI;
     arrowR.scale.set(arrowScale, arrowScale, 1);
     arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
     group.add(arrowR);
