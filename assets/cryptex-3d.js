@@ -33,7 +33,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   scene.add(cryptex);
 
   // ====== mūsu “izmēru patiesība” vienuviet ======
-  const BODY_LENGTH = 8.0;
   const BODY_RADIUS = 1.05;
 
   const SYMBOLS_PER_RING = 10;
@@ -45,18 +44,26 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
+  // ==== (1) BODY_LENGTH tiek piesiets ringiem, nevis hardcoded 8.0 ====
+  const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
+  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP; // tieši tāds pats “gap” kā starp diskiem
+
   const PLATE_H = 0.18; // radiālais biezums (plateH)
   const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2); // ringR + plateH/2
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.10; // neliels “apvalka” rezervs (lai gals aptver plāksnes)
 
+  // ==== (2) bultu Y pozīcija: nedaudz augstāk, lai trāpa tieši “vidējā rindā” ====
+  // ja gribi vēl augstāk/zemāk, maini šeit (0.18..0.32 ir saprātīgi)
+  const CHECK_ROW_Y = 0.26;
+
   // ====== centrs (karkass) ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
 
-  // ====== Dizaina gali (ornaments + mīksts slīpums + oksidācija) ======
+  // ====== Dizaina gali ======
   const ends = createEndCapsLocalZ({
     bodyLength: BODY_LENGTH,
     outerRadius: CAPS_OUTER_R,
-    checkRowY: 0, // pārbaudes “rinda” (pēc noklusējuma – centrālā)
+    checkRowY: CHECK_ROW_Y,
   });
   cryptex.add(ends.group);
 
@@ -207,7 +214,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function tick() {
     try {
       keepLabelsUpright();
-      // bultas ir sprites (vienmēr skatās kamerā) – te nekas nav jārotē
     } catch (e) {
       console.error("keepLabelsUpright error:", e);
     }
@@ -227,7 +233,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
     geom.rotateX(Math.PI / 2);
 
-    // oksidēts zelts (pamats)
     const mat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
       roughness: 0.75,
@@ -310,7 +315,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       p.userData.baseColor = baseColor;
       p.userData.plainMats = [mat];
 
-      // ===== LABEL =====
       const digitText = String(s);
       const tex = makeDigitTexture(THREE, digitText, baseColor);
 
@@ -371,10 +375,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     c.height = size;
     const ctx = c.getContext("2d");
 
-    // fons (OFF) – cipars tieši uz plāksnes
     ctx.clearRect(0, 0, size, size);
 
-    // “iekšējie paneļi” 0% (paliek, bet neko nezīmē)
     ctx.fillStyle = "rgba(255,255,255,0.00)";
     roundRect(ctx, 28, 28, size - 56, size - 56, 22);
     ctx.fill();
@@ -410,27 +412,29 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (Renesanses ornaments + mīksts slīpums + oksidācija)
+  //  END CAPS
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
 
-    // cik “brīva” vieta ir galos (lai netraucē ringiem)
-    // rings aizņem ~3.56 garumu, body ir 8, brīvs ~2.22 katrā pusē.
-    // šeit taisām “bagātīgu” galu, bet drošu.
     const sleeveLen = 0.95;
     const taperLen = 0.85;
     const tipLen = 0.35;
 
-    const zLeft = -bodyLength / 2 + sleeveLen / 2 - 0.02;
-    const zRight = bodyLength / 2 - sleeveLen / 2 + 0.02;
+    // ==== FIX: gali tiek būvēti “no body gala uz āru”, nevis iekšā body ====
+    const overlap = 0.015;
+    const leftFace = -bodyLength / 2;
+    const rightFace = bodyLength / 2;
 
-    const zLeftTaper = -bodyLength / 2 - taperLen / 2 - 0.05;
-    const zRightTaper = bodyLength / 2 + taperLen / 2 + 0.05;
+    const zLeft = leftFace - sleeveLen / 2 + overlap;
+    const zRight = rightFace + sleeveLen / 2 - overlap;
 
-    const zLeftTip = -bodyLength / 2 - taperLen - tipLen / 2 - 0.10;
-    const zRightTip = bodyLength / 2 + taperLen + tipLen / 2 + 0.10;
+    const zLeftTaper = leftFace - sleeveLen - taperLen / 2 + overlap;
+    const zRightTaper = rightFace + sleeveLen + taperLen / 2 - overlap;
+
+    const zLeftTip = leftFace - sleeveLen - taperLen - tipLen / 2 + overlap;
+    const zRightTip = rightFace + sleeveLen + taperLen + tipLen / 2 - overlap;
 
     const ornament = makeOrnamentTexture(THREE);
     ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
@@ -440,7 +444,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
     patina.repeat.set(3, 1);
 
-    // oksidēts zelts materiāls (ornaments ar bump + patina map)
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
       metalness: 0.78,
@@ -450,18 +453,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       bumpScale: 0.055,
     });
 
-    // tumšāks “iekšējais” gals (dziļumam)
     const darkMat = new THREE.MeshStandardMaterial({
       color: 0x2a251b,
       metalness: 0.35,
       roughness: 0.95,
     });
 
-    // Sleeve: cilindrs ap ārējo diametru
     const sleeveGeom = new THREE.CylinderGeometry(outerRadius, outerRadius, sleeveLen, 72, 1);
     sleeveGeom.rotateX(Math.PI / 2);
 
-    // mīksts slīpums (frustum)
     const taperGeom = new THREE.CylinderGeometry(
       outerRadius * 0.98,
       outerRadius * 0.72,
@@ -471,11 +471,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     taperGeom.rotateX(Math.PI / 2);
 
-    // maza “gala poga”
     const tipGeom = new THREE.CylinderGeometry(outerRadius * 0.50, outerRadius * 0.62, tipLen, 60, 1);
     tipGeom.rotateX(Math.PI / 2);
 
-    // kreisais gals
     const sleeveL = new THREE.Mesh(sleeveGeom, goldMat);
     sleeveL.position.z = zLeft;
     group.add(sleeveL);
@@ -488,7 +486,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tipL.position.z = zLeftTip;
     group.add(tipL);
 
-    // labais gals
     const sleeveR = new THREE.Mesh(sleeveGeom, goldMat);
     sleeveR.position.z = zRight;
     group.add(sleeveR);
@@ -501,7 +498,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tipR.position.z = zRightTip;
     group.add(tipR);
 
-    // “dziļums”: tumša iekšējā diska sajūta pašā galā (dekoratīvi)
     const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.62, outerRadius * 0.62, 0.06, 60, 1);
     innerDiskGeom.rotateX(Math.PI / 2);
 
@@ -513,63 +509,57 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerR.position.z = zRightTip + tipLen / 2 + 0.02;
     group.add(innerR);
 
-    // ===== bultas (sprites): vienmēr skatās kamerā =====
+    // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
     const arrowMat = new THREE.SpriteMaterial({
       map: arrowTex,
       transparent: true,
       opacity: 0.95,
-      depthTest: false, // lai vienmēr redzamas virs zelta
+      depthTest: false,
     });
 
-    // bultas mērogs
     const arrowScale = 0.65;
 
-    // Kreisā bulta (rāda uz centru: ->)
+    // ==== FIX: bultas sēž tieši pie body gala + paceļam uz checkRowY ====
+    const arrowInset = 0.06;
+
     const arrowL = new THREE.Sprite(arrowMat.clone());
-    arrowL.material.rotation = 0; // -> (pa labi ekrānā)
+    arrowL.material.rotation = 0; // ->
     arrowL.scale.set(arrowScale, arrowScale, 1);
-    arrowL.position.set(0, checkRowY, zLeft - sleeveLen / 2 - 0.12);
+    arrowL.position.set(0, checkRowY, leftFace - arrowInset);
     group.add(arrowL);
 
-    // Labā bulta (rāda uz centru: <-)
     const arrowR = new THREE.Sprite(arrowMat.clone());
-    arrowR.material.rotation = Math.PI; // <- (pa kreisi ekrānā)
+    arrowR.material.rotation = Math.PI; // <-
     arrowR.scale.set(arrowScale, arrowScale, 1);
-    arrowR.position.set(0, checkRowY, zRight + sleeveLen / 2 + 0.12);
+    arrowR.position.set(0, checkRowY, rightFace + arrowInset);
     group.add(arrowR);
 
     return { group, arrowL, arrowR };
   }
 
-  // Renesanses ornaments (bumpMap): vienkāršs “scrollwork” stils
   function makeOrnamentTexture(THREE) {
     const w = 512, h = 128;
     const c = document.createElement("canvas");
     c.width = w; c.height = h;
     const ctx = c.getContext("2d");
 
-    // pamats (neitrāls)
     ctx.fillStyle = "rgb(128,128,128)";
     ctx.fillRect(0, 0, w, h);
 
-    // “gravējums” – tumšāks (iegriezums)
     ctx.strokeStyle = "rgb(88,88,88)";
     ctx.lineWidth = 6;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // ritmiski ornamenti
     for (let x = 0; x < w + 120; x += 120) {
       const midY = h * 0.52;
 
-      // S-veida līkne
       ctx.beginPath();
       ctx.moveTo(x + 10, midY);
       ctx.bezierCurveTo(x + 35, midY - 35, x + 70, midY + 35, x + 95, midY);
       ctx.stroke();
 
-      // mazie loki augšā/apakšā
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.arc(x + 52, midY - 18, 12, 0.2 * Math.PI, 1.8 * Math.PI);
@@ -582,7 +572,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       ctx.lineWidth = 6;
     }
 
-    // “izcelums” – gaišāks (pacēlums)
     ctx.strokeStyle = "rgb(168,168,168)";
     ctx.lineWidth = 3;
     for (let x = 0; x < w + 120; x += 120) {
@@ -599,18 +588,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return tex;
   }
 
-  // Patina (map): zeltam piejauc “oksidācijas” plankumus
   function makePatinaTexture(THREE) {
     const w = 512, h = 256;
     const c = document.createElement("canvas");
     c.width = w; c.height = h;
     const ctx = c.getContext("2d");
 
-    // zelta pamattonis
     ctx.fillStyle = "#8A6B2D";
     ctx.fillRect(0, 0, w, h);
 
-    // tumšāki nolietojumi
     for (let i = 0; i < 220; i++) {
       const x = Math.random() * w;
       const y = Math.random() * h;
@@ -621,7 +607,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       ctx.fill();
     }
 
-    // zaļganā oksidācija (patina)
     for (let i = 0; i < 140; i++) {
       const x = Math.random() * w;
       const y = Math.random() * h;
@@ -632,7 +617,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       ctx.fill();
     }
 
-    // viegls “streak” virziens (gar asi)
     ctx.globalAlpha = 0.12;
     ctx.fillStyle = "#ffffff";
     for (let x = 0; x < w; x += 18) {
@@ -646,7 +630,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return tex;
   }
 
-  // Bulta kā sprites tekstūra (alpha)
   function makeArrowTexture(THREE) {
     const size = 256;
     const c = document.createElement("canvas");
@@ -654,21 +637,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const ctx = c.getContext("2d");
 
     ctx.clearRect(0, 0, size, size);
-
-    // bulta -> (mēs rotējam sprite ar material.rotation)
     ctx.translate(size / 2, size / 2);
-    ctx.rotate(0);
 
-    // “iegravēta” sajūta: ēna + gaišums
-    // ēna
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     drawArrow(ctx, 6, 2);
 
-    // pamats
     ctx.fillStyle = "rgba(250,240,210,0.95)";
     drawArrow(ctx, 0, 0);
 
-    // kontūra
     ctx.lineWidth = 6;
     ctx.strokeStyle = "rgba(30,25,18,0.55)";
     strokeArrow(ctx);
