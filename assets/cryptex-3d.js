@@ -540,7 +540,7 @@ function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
   const normal = new THREE.Vector3(x, yy, 0).normalize();
 
   // iznesam vairāk no virsmas, lai nebūtu z-fighting
-  const EPS = 0.035;
+  const EPS = 0.06;
   const pos = normal.clone().multiplyScalar(r + EPS);
 
   // izmērs
@@ -560,7 +560,7 @@ function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
     transparent: true,
-    opacity: 0.98,
+    opacity: 1.0,
     side: THREE.DoubleSide,
     depthTest: true,
     depthWrite: false,
