@@ -521,80 +521,73 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerR.position.z = zRightTip + tipLen / 2 + 0.02;
     group.add(innerR);
 
-    // ============================================================
-    //  BULTAS: IEGRAVĒTAS UZ SLEEVE VIRSMAS (NEVIS sprites)
-    // ============================================================
+  // ============================================================
+//  BULTAS: IEGRAVĒTAS UZ SLEEVE VIRSMAS (NEVIS sprites) — FIX (redzamas)
+// ============================================================
 
-    const arrowTexBase = makeArrowTexture(THREE);
-    arrowTexBase.wrapS = arrowTexBase.wrapT = THREE.ClampToEdgeWrapping;
+const arrowTexBase = makeArrowTexture(THREE);
+arrowTexBase.wrapS = arrowTexBase.wrapT = THREE.ClampToEdgeWrapping;
 
-    function makeEngravedMat(tex) {
-      return new THREE.MeshStandardMaterial({
-        map: tex,
-        transparent: true,
-        opacity: 0.92,
-        color: 0x1b1a16, // iegravējuma tonis
-        metalness: 0.15,
-        roughness: 0.9,
-        depthTest: true,
-        depthWrite: false,
-      });
-    }
+function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
+  const r = outerRadius;
+  const y = checkRowY;
 
-    function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
-      const r = outerRadius;
-      const y = checkRowY;
+  // drošība — lai neiziet ārpus cilindra
+  const yy = Math.max(-r + 0.001, Math.min(r - 0.001, y));
 
-      // drošības robežas
-      const yy = Math.max(-r + 0.001, Math.min(r - 0.001, y));
+  // uz “priekšpuses” (+X) cilindra virsmas
+  const x = Math.sqrt(Math.max(0, r * r - yy * yy));
+  const normal = new THREE.Vector3(x, yy, 0).normalize();
 
-      // uz cilindriskās virsmas (ņemam priekšpusi ar +X)
-      const x = Math.sqrt(Math.max(0, r * r - yy * yy));
-      const radial = new THREE.Vector3(x, yy, 0).normalize();
+  // iznesam vairāk no virsmas, lai nebūtu z-fighting
+  const EPS = 0.035;
+  const pos = normal.clone().multiplyScalar(r + EPS);
 
-      const EPS = 0.008; // virs virsmas, lai nav mirgošanas
-      const pos = radial.clone().multiplyScalar(r + EPS);
+  // izmērs
+  const aw = 0.78;
+  const ah = 0.44;
 
-      // bultas izmērs (uz gala virsmas)
-      const aw = 0.72;
-      const ah = 0.40;
-      const geom = new THREE.PlaneGeometry(aw, ah);
+  // tekstūra: kreisajā pusē ->, labajā spoguļojam uz <-
+  let tex = arrowTexBase;
+  if (!isLeft) {
+    tex = arrowTexBase.clone();
+    tex.repeat.x = -1;
+    tex.offset.x = 1;
+    tex.needsUpdate = true;
+  }
 
-      // labajā pusē apgriežam tekstūru, lai kļūst par "<-"
-      let tex = arrowTexBase;
-      if (!isLeft) {
-        tex = arrowTexBase.clone();
-        tex.repeat.x = -1;
-        tex.offset.x = 1;
-        tex.needsUpdate = true;
-      }
+  // MeshBasicMaterial = vienmēr redzams (neatkarīgi no gaismām)
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    opacity: 0.98,
+    side: THREE.DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+  });
 
-      const mat = makeEngravedMat(tex);
-      const plane = new THREE.Mesh(geom, mat);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(aw, ah), mat);
 
-      // pozīcija uz sleeve virsmas sleeve-lokālajās koordinātās
-      plane.position.copy(pos);
+  // pozīcija uz sleeve
+  plane.position.copy(pos);
 
-      // orientācija:
-      // normal = radial (uz āru), "virziens" pa asi uz centru: left => +Z, right => -Z
-      const normal = radial.clone();
-      const dirToCenter = isLeft ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+  // lai plakne skatās uz āru pa normāli
+  plane.lookAt(pos.clone().add(normal));
 
-      const right = dirToCenter.clone().normalize();
-      const up = new THREE.Vector3().crossVectors(normal, right).normalize();
+  // pagriežam tā, lai bulta “skatās uz centru” pa asi:
+  // left => uz +Z (uz centru), right => uz -Z (uz centru)
+  // (šeit grozam ap normāli)
+  plane.rotateZ(isLeft ? 0 : Math.PI);
 
-      // ja gadās degenerācija
-      if (up.lengthSq() < 1e-6) up.set(0, 1, 0);
+  // vienmēr virs metāla (mazs renderOrder)
+  plane.renderOrder = 10;
 
-      const m = new THREE.Matrix4().makeBasis(right, up, normal);
-      plane.quaternion.setFromRotationMatrix(m);
+  sleeveMesh.add(plane);
+  return plane;
+}
 
-      sleeveMesh.add(plane);
-      return plane;
-    }
-
-    const engravedArrowL = addEngravedArrowOnSleeve(sleeveL, true);
-    const engravedArrowR = addEngravedArrowOnSleeve(sleeveR, false);
+const engravedArrowL = addEngravedArrowOnSleeve(sleeveL, true);
+const engravedArrowR = addEngravedArrowOnSleeve(sleeveR, false);
 
     return { group, engravedArrowL, engravedArrowR };
   }
