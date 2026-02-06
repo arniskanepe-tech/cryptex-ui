@@ -589,6 +589,22 @@ function addEngravedArrowOnSleeve(sleeveMesh, isLeft) {
 const engravedArrowL = addEngravedArrowOnSleeve(sleeveL, true);
 const engravedArrowR = addEngravedArrowOnSleeve(sleeveR, false);
 
+// ===== DEBUG: kubiņi, lai redzam kur "jābūt bultām" =====
+const dbgMatL = new THREE.MeshBasicMaterial({ color: 0xff00ff }); // rozā
+const dbgMatR = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // ciāna
+const dbgGeom = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+
+const dbgL = new THREE.Mesh(dbgGeom, dbgMatL);
+dbgL.position.set(0, checkRowY, leftFace - 0.06);
+dbgL.renderOrder = 999;
+group.add(dbgL);
+
+const dbgR = new THREE.Mesh(dbgGeom, dbgMatR);
+dbgR.position.set(0, checkRowY, rightFace + 0.06);
+dbgR.renderOrder = 999;
+group.add(dbgR);
+
+
     return { group, engravedArrowL, engravedArrowR };
   }
 
