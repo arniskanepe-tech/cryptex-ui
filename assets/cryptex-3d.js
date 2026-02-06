@@ -54,7 +54,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   // ==== (2) bultu Y pozīcija: nedaudz augstāk, lai trāpa tieši “vidējā rindā” ====
   // ja gribi vēl augstāk/zemāk, maini šeit (0.18..0.32 ir saprātīgi)
-  const CHECK_ROW_Y = 0.26;
+  const CHECK_ROW_Y = 0.56;
 
   // ====== centrs (karkass) ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
