@@ -32,37 +32,38 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
 
-  // ====== mūsu “izmēru patiesība” vienuviet ======
+  // ====== izmēri ======
   const BODY_RADIUS = 1.05;
 
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  // ring / plate dimensijas (tām jābūt saskanīgām ar createSegmentedRingLocalZ)
   const RING_COUNT = 4;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
-  // ==== (1) BODY_LENGTH tiek piesiets ringiem, nevis hardcoded 8.0 ====
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
-  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP; // tieši tāds pats “gap” kā starp diskiem
+  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
-  const PLATE_H = 0.18; // radiālais biezums (plateH)
-  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2); // ringR + plateH/2
-  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10; // neliels “apvalka” rezervs (lai gals aptver plāksnes)
+  const PLATE_H = 0.18;
+  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2);
+  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
 
-  // ==== (2) bultu Y pozīcija ====
+  // bultu “rinda”
   const CHECK_ROW_Y = 0.85;
 
-  // ====== centrs (karkass) ======
+  // ====== ķermenis ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
 
-  // ====== Dizaina gali (LATHE) ======
+  // ====== gali (LATHE + stop-rings) ======
   const ends = createEndCapsLocalZ({
     bodyLength: BODY_LENGTH,
     outerRadius: CAPS_OUTER_R,
     checkRowY: CHECK_ROW_Y,
+    bodyRadius: BODY_RADIUS,
+    ringRadius: RING_RADIUS,
+    plateOuterRadius: PLATE_OUTER_R,
   });
   cryptex.add(ends.group);
 
@@ -151,7 +152,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   window.addEventListener("resize", resize);
   resize();
 
-  // ===== UPRIGHT stabils (bez crash) =====
+  // ===== Label upright =====
   const _plateWorldQ = new THREE.Quaternion();
   const _invPlateWorldQ = new THREE.Quaternion();
   const _normalWorld = new THREE.Vector3();
@@ -229,12 +230,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function createCryptexBodyLocalZ(length, radius) {
-    const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
+    const geom = new THREE.CylinderGeometry(radius, radius, length, 64, 1);
     geom.rotateX(Math.PI / 2);
 
     const mat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      roughness: 0.75,
+      roughness: 0.78,
       metalness: 0.45,
     });
 
@@ -262,12 +263,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const group = new THREE.Group();
 
     const baseRadius = radius - 0.10;
-    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
+    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 72, 1);
     baseGeom.rotateX(Math.PI / 2);
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x6f5524,
-      roughness: 0.80,
+      roughness: 0.82,
       metalness: 0.50,
     });
 
@@ -299,7 +300,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor.clone(),
-        roughness: 0.45,
+        roughness: 0.46,
         metalness: 0.22,
       });
 
@@ -411,26 +412,27 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (LATHE) — “hardcore mehānisks profils”
+  //  END CAPS (HARDCORE LATHE + STOP-RING)
   // ============================================================
 
-  function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
+  function createEndCapsLocalZ({
+    bodyLength,
+    outerRadius,
+    checkRowY,
+    bodyRadius,
+    ringRadius,
+    plateOuterRadius,
+  }) {
     const group = new THREE.Group();
 
-    // garums uz āru (no body “sejas”)
-    const sleeveLen = 0.70; // mazāk gluda “piedurkne”
-    const midLen = 0.55;    // mehānisks posms ar rievām
-    const taperLen = 0.55;  // konuss
-    const tipLen = 0.35;    // uzgalis
-    const capLen = sleeveLen + midLen + taperLen + tipLen;
-
-    const overlap = 0.015;
+    const overlap = 0.012;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
 
+    // tekstūras
     const ornament = makeOrnamentTexture(THREE);
     ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
-    ornament.repeat.set(7, 1);
+    ornament.repeat.set(6, 1);
 
     const patina = makePatinaTexture(THREE);
     patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
@@ -438,50 +440,63 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      metalness: 0.82,
+      metalness: 0.80,
       roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.06,
+      bumpScale: 0.060,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x2a251b,
+      color: 0x201c15,
       metalness: 0.35,
-      roughness: 0.95,
+      roughness: 0.96,
     });
 
-    // --- LATHE profils (gropes + pakāpieni)
-    // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
-    const capGeom = buildCapLatheGeometry(
-      outerRadius,
-      sleeveLen,
-      midLen,
-      taperLen,
-      tipLen
-    );
-    capGeom.rotateX(Math.PI / 2); // Y -> Z
+    // ===== STOP-RING pie “sejas” (mehāniska atdure) =====
+    // vizuāli: plāns gredzens + vēl plānāks “pakāpiens”
+    const stopOuterR = Math.max(plateOuterRadius * 0.985, ringRadius * 1.02);
+    const stopH1 = 0.065;
+    const stopH2 = 0.030;
 
-    // kreisais (spogulis)
+    const stopGeom1 = new THREE.CylinderGeometry(stopOuterR, stopOuterR, stopH1, 96, 1);
+    stopGeom1.rotateX(Math.PI / 2);
+
+    const stopGeom2 = new THREE.CylinderGeometry(stopOuterR * 0.955, stopOuterR * 0.955, stopH2, 96, 1);
+    stopGeom2.rotateX(Math.PI / 2);
+
+    const stopL1 = new THREE.Mesh(stopGeom1, goldMat);
+    stopL1.position.z = leftFace + stopH1 / 2 + 0.002;
+    group.add(stopL1);
+
+    const stopL2 = new THREE.Mesh(stopGeom2, goldMat);
+    stopL2.position.z = leftFace + stopH1 + stopH2 / 2 + 0.003;
+    group.add(stopL2);
+
+    const stopR1 = new THREE.Mesh(stopGeom1, goldMat);
+    stopR1.position.z = rightFace - stopH1 / 2 - 0.002;
+    group.add(stopR1);
+
+    const stopR2 = new THREE.Mesh(stopGeom2, goldMat);
+    stopR2.position.z = rightFace - stopH1 - stopH2 / 2 - 0.003;
+    group.add(stopR2);
+
+    // ===== LATHE gala profils (asākas kantes, īsāks slīpums) =====
+    const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
+    capGeom.rotateX(Math.PI / 2); // Y->Z
+
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
-    capL.scale.z = -1;
+    capL.scale.z = -1; // spogulis uz kreiso pusi
     group.add(capL);
 
-    // labais
     const capR = new THREE.Mesh(capGeom, goldMat);
     capR.position.z = rightFace + overlap;
     capR.scale.z = 1;
     group.add(capR);
 
-    // iekšējais “tumšais disks”
-    const innerDiskGeom = new THREE.CylinderGeometry(
-      outerRadius * 0.62,
-      outerRadius * 0.62,
-      0.07,
-      60,
-      1
-    );
+    // iekšējais “tumšais disks” pašā galā (kā tev bija, bet piesiets capLen)
+    const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.60, outerRadius * 0.60, 0.06, 72, 1);
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
@@ -499,13 +514,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       transparent: true,
       opacity: 0.95,
       depthTest: false,
-      depthWrite: false,
     });
 
     const arrowScale = 0.65;
     const arrowInset = 0.06;
 
-    // (x, y, z) vietējās koordinātas cryptex grupā
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0; // ->
     arrowL.scale.set(arrowScale, arrowScale, 1);
@@ -519,92 +532,63 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     group.add(arrowR);
 
     return { group, arrowL, arrowR };
+  }
 
-    // --------- LATHE generator ----------
-    function buildCapLatheGeometry(outerR, sleeveL, midL, taperL, tipL) {
-      const R = outerR;
+  function buildCapLatheGeometry(outerRadius) {
+    // HARDCORE profils:
+    // - ļoti ātrs kritums uz “kaklu”
+    // - asākas gropes (īsi posmi ar strauju radius maiņu)
+    // - īss taper uz pēdējo mazāko riņķi
+    //
+    // Lathe ass: Y (0 pie sejas, +Y uz āru)
+    const OR = outerRadius;
 
-      // 0..capLen ass gar Y, rādiuss pa X
-      // daudz “lūzumu”, rievu (dziļas + smalkas), mehānisks siluets
-      const y0 = 0;
-      const y1 = sleeveL * 0.18;
-      const y2 = sleeveL * 0.45;
-      const y3 = sleeveL;
+    // kopgarums (īsāks nekā iepriekš)
+    const capLen = 1.05;
 
-      const y4 = sleeveL + midL * 0.18;
-      const y5 = sleeveL + midL * 0.38;
-      const y6 = sleeveL + midL * 0.58;
-      const y7 = sleeveL + midL * 0.78;
-      const y8 = sleeveL + midL;
+    // punktu princips:
+    // [radius, y] – mazs y solis = asāka kante
+    const pts = [
+      // pie sejas (blakus stop-ring) – mazs chamfer
+      new THREE.Vector2(OR * 1.00, 0.00),
+      new THREE.Vector2(OR * 0.99, 0.03),
 
-      const y9 = sleeveL + midL + taperL * 0.35;
-      const y10 = sleeveL + midL + taperL * 0.75;
-      const y11 = sleeveL + midL + taperL;
+      // 1. pakāpiens (ridge)
+      new THREE.Vector2(OR * 1.02, 0.06),
+      new THREE.Vector2(OR * 1.02, 0.10),
 
-      const y12 = sleeveL + midL + taperL + tipL * 0.55;
-      const y13 = sleeveL + midL + taperL + tipL;
+      // straujš kritums uz “kaklu”
+      new THREE.Vector2(OR * 0.86, 0.125),
+      new THREE.Vector2(OR * 0.86, 0.155),
 
-      // rādiusi
-      const rBase = R * 1.00;
-      const rStep1 = R * 0.96;
-      const rGroove = R * 0.90;
-      const rRidge = R * 0.985;
+      // groove + ridge (asas pārejas)
+      new THREE.Vector2(OR * 0.80, 0.175),
+      new THREE.Vector2(OR * 0.80, 0.215),
 
-      const rMid1 = R * 0.94;
-      const rMidGroove1 = R * 0.86;
-      const rMidRidge = R * 0.975;
-      const rMid2 = R * 0.92;
-      const rMidGroove2 = R * 0.84;
+      new THREE.Vector2(OR * 0.92, 0.235),
+      new THREE.Vector2(OR * 0.92, 0.285),
 
-      const rTaper1 = R * 0.86;
-      const rTaper2 = R * 0.72;
-      const rTipBase = R * 0.62;
-      const rTip = R * 0.48;
+      // otra gropīte
+      new THREE.Vector2(OR * 0.84, 0.305),
+      new THREE.Vector2(OR * 0.84, 0.345),
 
-      const pts = [
-        // tieši pie body sejas (neliels “plecs”)
-        new THREE.Vector2(rBase, y0),
-        new THREE.Vector2(rRidge, y0 + 0.03),
-        new THREE.Vector2(rStep1, y1),
-        // dziļā rieva
-        new THREE.Vector2(rGroove, y1 + 0.03),
-        new THREE.Vector2(rRidge, y1 + 0.06),
-        new THREE.Vector2(rStep1, y2),
+      // īss taper uz mazāko “pēdējo riņķi”
+      new THREE.Vector2(OR * 0.70, 0.43),
+      new THREE.Vector2(OR * 0.66, 0.52),
 
-        // vēl viena rieva uz “sleeve”
-        new THREE.Vector2(rGroove, y2 + 0.04),
-        new THREE.Vector2(rRidge, y2 + 0.08),
-        new THREE.Vector2(rBase, y3),
+      // gala “bulba” + beigu disks
+      new THREE.Vector2(OR * 0.74, 0.62),
+      new THREE.Vector2(OR * 0.68, 0.72),
+      new THREE.Vector2(OR * 0.60, 0.86),
 
-        // MID sekcija (vairāk mehānikas)
-        new THREE.Vector2(rMid1, y4),
-        new THREE.Vector2(rMidRidge, y4 + 0.03),
-        new THREE.Vector2(rMidGroove1, y5),
-        new THREE.Vector2(rMidRidge, y5 + 0.05),
-        new THREE.Vector2(rMid2, y6),
+      // pašas beigas (mazs chamfer)
+      new THREE.Vector2(OR * 0.58, capLen - 0.03),
+      new THREE.Vector2(OR * 0.56, capLen),
+    ];
 
-        new THREE.Vector2(rMidRidge, y6 + 0.03),
-        new THREE.Vector2(rMidGroove2, y7),
-        new THREE.Vector2(rMidRidge, y7 + 0.05),
-        new THREE.Vector2(rMid1, y8),
-
-        // TAPER (konuss ar nelielu “kanti”)
-        new THREE.Vector2(rTaper1, y9),
-        new THREE.Vector2(rTaper2, y10),
-        new THREE.Vector2(rTipBase, y11),
-
-        // TIP
-        new THREE.Vector2(rTipBase * 0.98, y11 + 0.03),
-        new THREE.Vector2(rTip * 1.02, y12),
-        new THREE.Vector2(rTip, y13),
-      ];
-
-      // segments: jo vairāk, jo apaļāks
-      const radialSegments = 96;
-      const g = new THREE.LatheGeometry(pts, radialSegments);
-      g.computeVertexNormals();
-      return g;
-    }
+    const geom = new THREE.LatheGeometry(pts, 96);
+    geom.computeVertexNormals();
+    return { geom, capLen };
   }
 
   function makeOrnamentTexture(THREE) {
