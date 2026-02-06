@@ -503,11 +503,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       new THREE.Vector2(outerRadius * 1.0, 0.09),
 
       // Knife-edge groove #1 (ļoti šaura)
-      new THREE.Vector2(outerRadius * 0.90, 0.102),
+      new THREE.Vector2(outerRadius * 0.96, 0.102),
       new THREE.Vector2(outerRadius * 1.0, 0.114),
 
       // Knife-edge groove #2 (ļoti šaura)
-      new THREE.Vector2(outerRadius * 0.88, 0.132),
+      new THREE.Vector2(outerRadius * 0.95, 0.132),
       new THREE.Vector2(outerRadius * 1.0, 0.146),
 
       // Straujš kritums (saīsināts slīpums)
@@ -518,11 +518,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       new THREE.Vector2(outerRadius * 0.86, 0.33),
 
       // Ļoti īss slīpums uz “fiksatoru”
-      new THREE.Vector2(outerRadius * 0.66, 0.40),
+      new THREE.Vector2(outerRadius * 0.66, 0.36),
 
       // “Fiksators” (cilindrs + gala pakāpiens)
-      new THREE.Vector2(outerRadius * 0.62, 0.46),
-      new THREE.Vector2(outerRadius * 0.62, 0.60),
+      new THREE.Vector2(outerRadius * 0.62, 0.42),
+      new THREE.Vector2(outerRadius * 0.62, 0.56),
 
       // Pēdējais mazais gredzens (asi)
       new THREE.Vector2(outerRadius * 0.50, 0.64),
