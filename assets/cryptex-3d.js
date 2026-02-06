@@ -430,7 +430,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x2a251b,
+      color: 0x000000,
       metalness: 0.35,
       roughness: 0.95,
     });
