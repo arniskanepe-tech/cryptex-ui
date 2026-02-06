@@ -51,8 +51,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
   const PLATE_H = 0.18;
-  const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.30 + PLATE_H / 2;
-  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
+  const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.3 + PLATE_H / 2;
+  const CAPS_OUTER_R = PLATE_OUTER_R + 0.1;
 
   // bultu rinda (tava aktuālā)
   const CHECK_ROW_Y = 0.85;
@@ -257,7 +257,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function createSegmentedRingLocalZ({ width, radius, symbols }) {
     const group = new THREE.Group();
 
-    const baseRadius = radius - 0.10;
+    const baseRadius = radius - 0.1;
     const baseGeom = new THREE.CylinderGeometry(
       baseRadius,
       baseRadius,
@@ -317,7 +317,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       p.userData.plainMats = [mat];
 
       const digitText = String(s);
-      const tex = makeDigitTexture(THREE, digitText, baseColor);
+      const tex = makeDigitTexture(THREE, digitText);
 
       const labelMat = new THREE.MeshBasicMaterial({
         map: tex,
@@ -399,7 +399,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (LATHE) — hardcore profils (īsāks slīpums + knife-edge + fiksators)
+  //  END CAPS (LATHE) — hardcore profils:
+  //   - īsāks slīpums
+  //   - "knife-edge" gropes
+  //   - "fiksatora" sajūta (zemāks radialSegments)
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
@@ -493,46 +496,47 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   function buildCapLatheGeometry(outerRadius) {
     // Y=0 ir pie body sejas (pie ringiem). Y aug uz āru.
+    // Slīpā zona saīsināta (straujāki kritumi), knife-edge gropes ar ļoti mazu Y starpību.
     const pts = [
-      new THREE.Vector2(outerRadius * 1.00, 0.0),
-      new THREE.Vector2(outerRadius * 1.00, 0.10),
+      // pie sejas (lielais diametrs)
+      new THREE.Vector2(outerRadius * 1.0, 0.0),
+      new THREE.Vector2(outerRadius * 1.0, 0.09),
 
-      // Knife-edge groove #1
-      new THREE.Vector2(outerRadius * 0.92, 0.115),
-      new THREE.Vector2(outerRadius * 1.00, 0.130),
+      // Knife-edge groove #1 (ļoti šaura)
+      new THREE.Vector2(outerRadius * 0.90, 0.102),
+      new THREE.Vector2(outerRadius * 1.0, 0.114),
 
-      // Knife-edge groove #2
-      new THREE.Vector2(outerRadius * 0.90, 0.150),
-      new THREE.Vector2(outerRadius * 1.00, 0.170),
+      // Knife-edge groove #2 (ļoti šaura)
+      new THREE.Vector2(outerRadius * 0.88, 0.132),
+      new THREE.Vector2(outerRadius * 1.0, 0.146),
 
       // Straujš kritums (saīsināts slīpums)
-      new THREE.Vector2(outerRadius * 0.78, 0.26),
+      new THREE.Vector2(outerRadius * 0.76, 0.22),
 
       // Stop-ring (izteikts pakāpiens)
-      new THREE.Vector2(outerRadius * 0.86, 0.32),
-      new THREE.Vector2(outerRadius * 0.86, 0.40),
+      new THREE.Vector2(outerRadius * 0.86, 0.26),
+      new THREE.Vector2(outerRadius * 0.86, 0.33),
 
-      // Īss slīpums uz “fiksatoru”
-      new THREE.Vector2(outerRadius * 0.68, 0.52),
+      // Ļoti īss slīpums uz “fiksatoru”
+      new THREE.Vector2(outerRadius * 0.66, 0.40),
 
-      // “Fiksators”
+      // “Fiksators” (cilindrs + gala pakāpiens)
+      new THREE.Vector2(outerRadius * 0.62, 0.46),
       new THREE.Vector2(outerRadius * 0.62, 0.60),
-      new THREE.Vector2(outerRadius * 0.62, 0.74),
 
-      // Pēdējais mazais gredzens / gals
-      new THREE.Vector2(outerRadius * 0.52, 0.78),
-      new THREE.Vector2(outerRadius * 0.52, 0.92),
+      // Pēdējais mazais gredzens (asi)
+      new THREE.Vector2(outerRadius * 0.50, 0.64),
+      new THREE.Vector2(outerRadius * 0.50, 0.78),
 
       // Aizveram uz asi
-      new THREE.Vector2(0.001, 0.92),
+      new THREE.Vector2(0.001, 0.78),
     ];
 
-    const radialSegments = 8; // 6–8 dod “sešstūra sajūtu”
+    // zemāks segments skaits => “mehānisks / sešstūra” iespaids
+    const radialSegments = 8; // (6–10) varianti: 6 = vissešstūrīgākais
     const geom = new THREE.LatheGeometry(pts, radialSegments);
 
-    // capLen = pēdējais Y (attālums uz āru)
     const capLen = pts[pts.length - 1].y;
-
     return { geom, capLen };
   }
 
