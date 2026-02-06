@@ -212,9 +212,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     geom.rotateX(Math.PI / 2);
 
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x232734,
-      roughness: 0.65,
-      metalness: 0.25,
+      color: 0x8A6B2D,
+      roughness: 0.75,
+      metalness: 0.45,
     });
 
     return new THREE.Mesh(geom, mat);
@@ -249,9 +249,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     baseGeom.rotateX(Math.PI / 2);
 
     const baseMat = new THREE.MeshStandardMaterial({
-      color: 0x2f3442,
-      roughness: 0.55,
-      metalness: 0.35,
+      color: 0x6F5524,
+      roughness: 0.80,
+      metalness: 0.50,
     });
 
     const base = new THREE.Mesh(baseGeom, baseMat);
