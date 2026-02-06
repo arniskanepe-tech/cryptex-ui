@@ -359,10 +359,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     c.height = size;
     const ctx = c.getContext("2d");
 
-    ctx.fillStyle = "#" + baseColor.getHexString();
-    ctx.fillRect(0, 0, size, size);
+    // ctx.fillStyle = "#" + baseColor.getHexString();
+    // ctx.fillRect(0, 0, size, size);
 
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    // fons (OFF)
+    ctx.clearRect(0, 0, size, size);
+
+    ctx.fillStyle = "rgba(255,255,255,0.00)";
     roundRect(ctx, 28, 28, size - 56, size - 56, 22);
     ctx.fill();
 
