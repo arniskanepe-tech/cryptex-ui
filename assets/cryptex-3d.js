@@ -38,19 +38,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
+  // ring / plate dimensijas (tām jābūt saskanīgām ar createSegmentedRingLocalZ)
   const RING_COUNT = 4;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
+  // ==== (1) BODY_LENGTH tiek piesiets ringiem, nevis hardcoded 8.0 ====
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
-  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
+  const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP; // tieši tāds pats “gap” kā starp diskiem
 
-  const PLATE_H = 0.18;
-  const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.30 + PLATE_H / 2;
-  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
+  const PLATE_H = 0.18; // radiālais biezums (plateH)
+  const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2); // ringR + plateH/2
+  const CAPS_OUTER_R = PLATE_OUTER_R + 0.10; // neliels “apvalka” rezervs (lai gals aptver plāksnes)
 
-  // bultu vertikālais līmenis (tu esi to pacēlis augstu – saglabāju)
+  // ==== (2) bultu Y pozīcija ====
   const CHECK_ROW_Y = 0.85;
 
   // ====== centrs (karkass) ======
@@ -409,17 +411,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (LATHE)
+  //  END CAPS (LATHE) — “hardcore mehānisks profils”
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
 
     // garums uz āru (no body “sejas”)
-    const sleeveLen = 0.95;
-    const taperLen = 0.85;
-    const tipLen = 0.35;
-    const capLen = sleeveLen + taperLen + tipLen;
+    const sleeveLen = 0.70; // mazāk gluda “piedurkne”
+    const midLen = 0.55;    // mehānisks posms ar rievām
+    const taperLen = 0.55;  // konuss
+    const tipLen = 0.35;    // uzgalis
+    const capLen = sleeveLen + midLen + taperLen + tipLen;
 
     const overlap = 0.015;
     const leftFace = -bodyLength / 2;
@@ -427,7 +430,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const ornament = makeOrnamentTexture(THREE);
     ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
-    ornament.repeat.set(6, 1);
+    ornament.repeat.set(7, 1);
 
     const patina = makePatinaTexture(THREE);
     patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
@@ -435,11 +438,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      metalness: 0.78,
-      roughness: 0.62,
+      metalness: 0.82,
+      roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.055,
+      bumpScale: 0.06,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
@@ -450,29 +453,43 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     // --- LATHE profils (gropes + pakāpieni)
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
-    const capGeom = buildCapLatheGeometry(outerRadius, sleeveLen, taperLen, tipLen);
+    const capGeom = buildCapLatheGeometry(
+      outerRadius,
+      sleeveLen,
+      midLen,
+      taperLen,
+      tipLen
+    );
     capGeom.rotateX(Math.PI / 2); // Y -> Z
 
+    // kreisais (spogulis)
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
-    capL.scale.z = -1; // spogulis: lai “iet uz kreiso pusi”
+    capL.scale.z = -1;
     group.add(capL);
 
+    // labais
     const capR = new THREE.Mesh(capGeom, goldMat);
     capR.position.z = rightFace + overlap;
     capR.scale.z = 1;
     group.add(capR);
 
-    // iekšējais “tumšais disks” (tā pati ideja, kas tev bija)
-    const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.62, outerRadius * 0.62, 0.06, 60, 1);
+    // iekšējais “tumšais disks”
+    const innerDiskGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.62,
+      outerRadius * 0.62,
+      0.07,
+      60,
+      1
+    );
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerL.position.z = leftFace - overlap - capLen - 0.02;
+    innerL.position.z = leftFace - overlap - capLen - 0.03;
     group.add(innerL);
 
     const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerR.position.z = rightFace + overlap + capLen + 0.02;
+    innerR.position.z = rightFace + overlap + capLen + 0.03;
     group.add(innerR);
 
     // ===== bultas (sprites) =====
@@ -482,61 +499,111 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       transparent: true,
       opacity: 0.95,
       depthTest: false,
+      depthWrite: false,
     });
 
     const arrowScale = 0.65;
     const arrowInset = 0.06;
 
-    // (tu jau atradi labu vizuālo “dziļuma” offsetu — atstāju)
-    const arrowX = -1.15;
-
+    // (x, y, z) vietējās koordinātas cryptex grupā
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0; // ->
     arrowL.scale.set(arrowScale, arrowScale, 1);
-    arrowL.position.set(arrowX, checkRowY, leftFace - arrowInset);
+    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
     arrowR.material.rotation = Math.PI; // <-
     arrowR.scale.set(arrowScale, arrowScale, 1);
-    arrowR.position.set(arrowX, checkRowY, rightFace + arrowInset);
+    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
     group.add(arrowR);
 
     return { group, arrowL, arrowR };
 
-    function buildCapLatheGeometry(r, sleeveLen, taperLen, tipLen) {
-      const L = sleeveLen + taperLen + tipLen;
+    // --------- LATHE generator ----------
+    function buildCapLatheGeometry(outerR, sleeveL, midL, taperL, tipL) {
+      const R = outerR;
 
-      // y = garums uz āru no body sejas (0..L)
-      // x = rādiuss
-      const pts = [];
+      // 0..capLen ass gar Y, rādiuss pa X
+      // daudz “lūzumu”, rievu (dziļas + smalkas), mehānisks siluets
+      const y0 = 0;
+      const y1 = sleeveL * 0.18;
+      const y2 = sleeveL * 0.45;
+      const y3 = sleeveL;
 
-      // 0..~0.30: “collar” + 2 gropes
-      pts.push(new THREE.Vector2(r * 1.00, 0.00));
-      pts.push(new THREE.Vector2(r * 1.04, 0.05));  // neliels izvirzījums (mala)
-      pts.push(new THREE.Vector2(r * 0.95, 0.10));  // 1. grope
-      pts.push(new THREE.Vector2(r * 1.01, 0.16));  // atpakaļ
-      pts.push(new THREE.Vector2(r * 0.97, 0.22));  // 2. grope
-      pts.push(new THREE.Vector2(r * 1.00, 0.30));  // atpakaļ uz “sleeve”
+      const y4 = sleeveL + midL * 0.18;
+      const y5 = sleeveL + midL * 0.38;
+      const y6 = sleeveL + midL * 0.58;
+      const y7 = sleeveL + midL * 0.78;
+      const y8 = sleeveL + midL;
 
-      // sleeve: pāris mikrogropes
-      pts.push(new THREE.Vector2(r * 1.00, sleeveLen * 0.55));
-      pts.push(new THREE.Vector2(r * 0.985, sleeveLen * 0.62));
-      pts.push(new THREE.Vector2(r * 1.00, sleeveLen * 0.70));
-      pts.push(new THREE.Vector2(r * 0.992, sleeveLen * 0.78));
-      pts.push(new THREE.Vector2(r * 1.00, sleeveLen));
+      const y9 = sleeveL + midL + taperL * 0.35;
+      const y10 = sleeveL + midL + taperL * 0.75;
+      const y11 = sleeveL + midL + taperL;
 
-      // taper (sašaurinājums)
-      pts.push(new THREE.Vector2(r * 0.92, sleeveLen + taperLen * 0.20));
-      pts.push(new THREE.Vector2(r * 0.80, sleeveLen + taperLen * 0.62));
-      pts.push(new THREE.Vector2(r * 0.72, sleeveLen + taperLen));
+      const y12 = sleeveL + midL + taperL + tipL * 0.55;
+      const y13 = sleeveL + midL + taperL + tipL;
 
-      // tip (pēdējais “uzgalis” ar mazu atplauku)
-      pts.push(new THREE.Vector2(r * 0.56, sleeveLen + taperLen + tipLen * 0.25));
-      pts.push(new THREE.Vector2(r * 0.62, L));
+      // rādiusi
+      const rBase = R * 1.00;
+      const rStep1 = R * 0.96;
+      const rGroove = R * 0.90;
+      const rRidge = R * 0.985;
 
-      // Lathe
-      return new THREE.LatheGeometry(pts, 84);
+      const rMid1 = R * 0.94;
+      const rMidGroove1 = R * 0.86;
+      const rMidRidge = R * 0.975;
+      const rMid2 = R * 0.92;
+      const rMidGroove2 = R * 0.84;
+
+      const rTaper1 = R * 0.86;
+      const rTaper2 = R * 0.72;
+      const rTipBase = R * 0.62;
+      const rTip = R * 0.48;
+
+      const pts = [
+        // tieši pie body sejas (neliels “plecs”)
+        new THREE.Vector2(rBase, y0),
+        new THREE.Vector2(rRidge, y0 + 0.03),
+        new THREE.Vector2(rStep1, y1),
+        // dziļā rieva
+        new THREE.Vector2(rGroove, y1 + 0.03),
+        new THREE.Vector2(rRidge, y1 + 0.06),
+        new THREE.Vector2(rStep1, y2),
+
+        // vēl viena rieva uz “sleeve”
+        new THREE.Vector2(rGroove, y2 + 0.04),
+        new THREE.Vector2(rRidge, y2 + 0.08),
+        new THREE.Vector2(rBase, y3),
+
+        // MID sekcija (vairāk mehānikas)
+        new THREE.Vector2(rMid1, y4),
+        new THREE.Vector2(rMidRidge, y4 + 0.03),
+        new THREE.Vector2(rMidGroove1, y5),
+        new THREE.Vector2(rMidRidge, y5 + 0.05),
+        new THREE.Vector2(rMid2, y6),
+
+        new THREE.Vector2(rMidRidge, y6 + 0.03),
+        new THREE.Vector2(rMidGroove2, y7),
+        new THREE.Vector2(rMidRidge, y7 + 0.05),
+        new THREE.Vector2(rMid1, y8),
+
+        // TAPER (konuss ar nelielu “kanti”)
+        new THREE.Vector2(rTaper1, y9),
+        new THREE.Vector2(rTaper2, y10),
+        new THREE.Vector2(rTipBase, y11),
+
+        // TIP
+        new THREE.Vector2(rTipBase * 0.98, y11 + 0.03),
+        new THREE.Vector2(rTip * 1.02, y12),
+        new THREE.Vector2(rTip, y13),
+      ];
+
+      // segments: jo vairāk, jo apaļāks
+      const radialSegments = 96;
+      const g = new THREE.LatheGeometry(pts, radialSegments);
+      g.computeVertexNormals();
+      return g;
     }
   }
 
