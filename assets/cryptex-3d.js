@@ -8,15 +8,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     antialias: true,
     powerPreference: "high-performance",
   });
-
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0xe7e7e7, 1);
-
-  // ===== SAFE render kvalitāte (neizsauc melno ekrānu) =====
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12; // 1.0..1.3
-  renderer.physicallyCorrectLights = true;
 
   const scene = new THREE.Scene();
 
@@ -24,20 +17,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   camera.position.set(0, 2.4, 7.5);
   camera.lookAt(0, 0, 0);
 
-  // ===== gaismas (uzlabots “render look”, bet safe) =====
-  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-  const key = new THREE.DirectionalLight(0xffffff, 3.0);
-  key.position.set(5.5, 7.0, 6.0);
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(4, 6, 5);
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0xffffff, 1.2);
-  fill.position.set(-7.0, 2.0, -3.0);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+  fill.position.set(-6, 2, -3);
   scene.add(fill);
-
-  const rim = new THREE.DirectionalLight(0xffffff, 1.1);
-  rim.position.set(-2.0, 6.0, 9.0);
-  scene.add(rim);
 
   // Cryptex group: build local Z, rotate to horizontal
   const cryptex = new THREE.Group();
@@ -56,20 +44,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
+  // ==== BODY_LENGTH piesiets ringiem ====
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
-  const PLATE_H = 0.18;
+  const PLATE_H = 0.18; // radiālais biezums (plateH)
   const PLATE_OUTER_R = (RING_RADIUS + PLATE_H * 0.30) + (PLATE_H / 2);
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.10;
 
-  // Tava izvēle (bultu līmenis)
+  // Bultu rinda (vizuāla)
   const CHECK_ROW_Y = 0.85;
 
   // ====== centrs (karkass) ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
 
-  // ====== Dizaina gali ======
+  // ====== Dizaina gali (ar detalizāciju) ======
   const ends = createEndCapsLocalZ({
     bodyLength: BODY_LENGTH,
     outerRadius: CAPS_OUTER_R,
@@ -240,16 +229,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function createCryptexBodyLocalZ(length, radius) {
-    const geom = new THREE.CylinderGeometry(radius, radius, length, 64, 1);
+    const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
     geom.rotateX(Math.PI / 2);
 
-    // Safe “render look” materiāls
-    const mat = new THREE.MeshPhysicalMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      roughness: 0.55,
-      metalness: 0.70,
-      clearcoat: 0.18,
-      clearcoatRoughness: 0.65,
+      roughness: 0.75,
+      metalness: 0.45,
     });
 
     return new THREE.Mesh(geom, mat);
@@ -276,13 +262,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const group = new THREE.Group();
 
     const baseRadius = radius - 0.10;
-    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 80, 1);
+    const baseGeom = new THREE.CylinderGeometry(baseRadius, baseRadius, width, 64, 1);
     baseGeom.rotateX(Math.PI / 2);
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x6f5524,
       roughness: 0.80,
-      metalness: 0.55,
+      metalness: 0.50,
     });
 
     const base = new THREE.Mesh(baseGeom, baseMat);
@@ -425,7 +411,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS
+  //  END CAPS (ar 4 gredzeniem + gropēm/iedobēm)
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
@@ -435,6 +421,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const taperLen = 0.85;
     const tipLen = 0.35;
 
+    // Gali tiek būvēti “no body gala uz āru”
     const overlap = 0.015;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
@@ -456,37 +443,41 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
     patina.repeat.set(3, 1);
 
-    // Uzlabots “metāls” galiem (SAFE, bez envmap)
-    const goldMat = new THREE.MeshPhysicalMaterial({
+    const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
-      metalness: 0.92,
-      roughness: 0.42,
-      clearcoat: 0.28,
-      clearcoatRoughness: 0.62,
+      metalness: 0.78,
+      roughness: 0.62,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.05,
+      bumpScale: 0.055,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x2a251b,
-      metalness: 0.35,
+      color: 0x1f1b13,
+      metalness: 0.25,
       roughness: 0.95,
     });
 
-    const sleeveGeom = new THREE.CylinderGeometry(outerRadius, outerRadius, sleeveLen, 96, 1);
+    // Pamata formas
+    const sleeveGeom = new THREE.CylinderGeometry(outerRadius, outerRadius, sleeveLen, 80, 1);
     sleeveGeom.rotateX(Math.PI / 2);
 
     const taperGeom = new THREE.CylinderGeometry(
       outerRadius * 0.98,
       outerRadius * 0.72,
       taperLen,
-      96,
+      80,
       1
     );
     taperGeom.rotateX(Math.PI / 2);
 
-    const tipGeom = new THREE.CylinderGeometry(outerRadius * 0.50, outerRadius * 0.62, tipLen, 80, 1);
+    const tipGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.50,
+      outerRadius * 0.62,
+      tipLen,
+      72,
+      1
+    );
     tipGeom.rotateX(Math.PI / 2);
 
     const sleeveL = new THREE.Mesh(sleeveGeom, goldMat);
@@ -513,7 +504,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tipR.position.z = zRightTip;
     group.add(tipR);
 
-    const innerDiskGeom = new THREE.CylinderGeometry(outerRadius * 0.62, outerRadius * 0.62, 0.06, 80, 1);
+    // Iekšējais disks (tumšs)
+    const innerDiskGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.62,
+      outerRadius * 0.62,
+      0.06,
+      64,
+      1
+    );
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
@@ -523,6 +521,69 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
     innerR.position.z = zRightTip + tipLen / 2 + 0.02;
     group.add(innerR);
+
+    // ====== Detalizācija: 4 gredzeni + gropes/iedobes katrā pusē ======
+    const ringSegs = 96;
+    const baseR = outerRadius;
+
+    // Z pozīcijas gar sleeve/taper/tip (katrai pusei)
+    const zL1 = leftFace - 0.18; // pie body malas
+    const zL2 = leftFace - 0.46; // sleeve vidus
+    const zL3 = leftFace - 0.80; // pie taper sākuma
+    const zL4 = zLeftTip + 0.12; // tip tuvāk ārpusei
+
+    const zR1 = rightFace + 0.18;
+    const zR2 = rightFace + 0.46;
+    const zR3 = rightFace + 0.80;
+    const zR4 = zRightTip - 0.12;
+
+    // Zelta “rimi”
+    const torusGold1 = new THREE.TorusGeometry(baseR * 0.98, baseR * 0.020, 14, ringSegs);
+    const torusGold2 = new THREE.TorusGeometry(baseR * 0.92, baseR * 0.018, 14, ringSegs);
+    const torusGold3 = new THREE.TorusGeometry(baseR * 0.86, baseR * 0.017, 14, ringSegs);
+    const torusGold4 = new THREE.TorusGeometry(baseR * 0.78, baseR * 0.016, 14, ringSegs);
+
+    // Tumšās gropes/iedobes
+    const torusGrooveA = new THREE.TorusGeometry(baseR * 0.86, baseR * 0.040, 12, ringSegs);
+    const torusGrooveB = new THREE.TorusGeometry(baseR * 0.74, baseR * 0.036, 12, ringSegs);
+
+    // Plānie “step” cilindri (asāka pāreja)
+    const stepLen = 0.10;
+    const stepGeom1 = new THREE.CylinderGeometry(baseR * 0.975, baseR * 0.975, stepLen, 80, 1);
+    stepGeom1.rotateX(Math.PI / 2);
+    const stepGeom2 = new THREE.CylinderGeometry(baseR * 0.905, baseR * 0.905, stepLen * 0.9, 80, 1);
+    stepGeom2.rotateX(Math.PI / 2);
+
+    function addRing(geom, mat, z) {
+      const m = new THREE.Mesh(geom, mat);
+      m.position.z = z;
+      group.add(m);
+      return m;
+    }
+
+    // Left: 4 gredzeni + 2 gropes + 2 step
+    addRing(torusGold1, goldMat, zL1);
+    addRing(torusGrooveA, darkMat, zL1 - 0.07);
+    addRing(stepGeom1, goldMat, zL1 - 0.12);
+
+    addRing(torusGold2, goldMat, zL2);
+    addRing(torusGrooveB, darkMat, zL2 - 0.06);
+    addRing(stepGeom2, goldMat, zL2 - 0.12);
+
+    addRing(torusGold3, goldMat, zL3);
+    addRing(torusGold4, goldMat, zL4);
+
+    // Right: simetriski
+    addRing(torusGold1, goldMat, zR1);
+    addRing(torusGrooveA, darkMat, zR1 + 0.07);
+    addRing(stepGeom1, goldMat, zR1 + 0.12);
+
+    addRing(torusGold2, goldMat, zR2);
+    addRing(torusGrooveB, darkMat, zR2 + 0.06);
+    addRing(stepGeom2, goldMat, zR2 + 0.12);
+
+    addRing(torusGold3, goldMat, zR3);
+    addRing(torusGold4, goldMat, zR4);
 
     // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
@@ -539,13 +600,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0; // ->
     arrowL.scale.set(arrowScale, arrowScale, 1);
-    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset); // TAVA pozīcija
+    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
     arrowR.material.rotation = Math.PI; // <-
     arrowR.scale.set(arrowScale, arrowScale, 1);
-    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset); // TAVA pozīcija
+    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
     group.add(arrowR);
 
     return { group, arrowL, arrowR };
