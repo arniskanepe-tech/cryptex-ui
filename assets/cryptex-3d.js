@@ -408,7 +408,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
 
-    const overlap = 0.06;
+    const overlap = 0.015;
     const leftFace = -bodyLength / 2;
     const rightFace = bodyLength / 2;
 
@@ -439,6 +439,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
     capGeom.rotateX(Math.PI / 2); // Y -> Z
+    capGeom.computeVertexNormals();
 
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
@@ -553,7 +554,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ];
 
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
-    const radialSegments = 8; // (6–10) varianti: 6 = vissešstūrīgākais
+    const radialSegments = 12; // (6–10) varianti: 6 = vissešstūrīgākais
     const geom = new THREE.LatheGeometry(pts, radialSegments);
 
     const capLen = pts[pts.length - 1].y;
