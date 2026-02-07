@@ -423,16 +423,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0x8a6b2d,
       metalness: 0.78,
-      roughness: 0.62,
+      roughness: 0.58,
       map: patina,
       bumpMap: ornament,
       bumpScale: 0.055,
+      flatShading: true
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x000000,
-      metalness: 0.35,
-      roughness: 0.95,
+      color: 0x050505,
+      metalness: 0.15,
+      roughness: 0.88,
     });
 
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
@@ -451,7 +452,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
     const collarLen = 0.10; // biezums gar asi
-    const collarR = outerRadius * 0.99;
+    const collarR = outerRadius * 0.965;
 
     const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
     collarGeom.rotateX(Math.PI / 2);
@@ -514,9 +515,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // Slīpā zona saīsināta (straujāki kritumi), knife-edge gropes ar ļoti mazu Y starpību.
     const pts = [
       // pie sejas (lielais diametrs)
-      new THREE.Vector2(outerRadius * 1.0, 0.0),
-      new THREE.Vector2(outerRadius * 1.0, 0.09),
+      // Mehānisks "plecs" – disks apstājas šeit
+      new THREE.Vector2(outerRadius * 1.03, 0.0),
+      new THREE.Vector2(outerRadius * 1.03, 0.035),
+      new THREE.Vector2(outerRadius * 1.0,  0.06),
 
+    // pāreja uz esošo profilu
+      new THREE.Vector2(outerRadius * 1.0, 0.09),
       // Knife-edge groove #1 (ļoti šaura)
       new THREE.Vector2(outerRadius * 0.96, 0.102),
       new THREE.Vector2(outerRadius * 1.0, 0.114),
