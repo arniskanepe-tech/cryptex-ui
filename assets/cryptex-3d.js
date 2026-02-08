@@ -486,6 +486,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
+    innerL.visible = false;
+    innerR.visible = false;
+
     // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
     const arrowMat = new THREE.SpriteMaterial({
