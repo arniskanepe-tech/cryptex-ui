@@ -426,8 +426,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.055,
-      flatShading: true
+      bumpScale: 0.055
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
@@ -435,15 +434,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       metalness: 0.15,
       roughness: 0.88,
     });
-
-    // --- FIX z-fighting (ūsas) ---
-    goldMat.polygonOffset = true;
-    goldMat.polygonOffsetFactor = 1;
-    goldMat.polygonOffsetUnits = 1;
-
-    darkMat.polygonOffset = true;
-    darkMat.polygonOffsetFactor = 2;
-    darkMat.polygonOffsetUnits = 2;
 
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
