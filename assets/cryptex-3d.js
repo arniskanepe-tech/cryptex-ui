@@ -453,7 +453,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
     const collarLen = 0.10; // biezums gar asi
-    const collarR = outerRadius * 0.95;
+    const collarR = outerRadius * 0.965;
 
     const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
     collarGeom.rotateX(Math.PI / 2);
