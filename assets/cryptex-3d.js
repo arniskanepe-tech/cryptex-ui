@@ -528,14 +528,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function buildCapLatheGeometry(outerRadius) {
-    // debug: vienkāršs cilindrs cap vietā
   const capLen = 0.78;
-  let geom = new THREE.CylinderGeometry(outerRadius * 1.03, outerRadius * 0.50, capLen, 48, 1);
-  geom.rotateX(Math.PI / 2); // lai ass būtu Z (tāpat kā tev)
+  let geom = new THREE.CylinderGeometry(
+    outerRadius * 1.03,
+    outerRadius * 0.50,
+    capLen,
+    48,
+    1
+  );
   geom = geom.toNonIndexed();
   geom.computeVertexNormals();
   return { geom, capLen };
-  }
+}
 
   function makeOrnamentTexture(THREE) {
     const w = 512,
