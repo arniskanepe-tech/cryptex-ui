@@ -443,12 +443,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI; // <- 180° pagrieziens, bez negatīva scale
-    group.add(capL);
+    // group.add(capL);
 
     const capR = new THREE.Mesh(capGeom, goldMat);
     capR.position.z = rightFace + overlap;
     capR.scale.z = 1;
-    group.add(capR);
+    // group.add(capR);
     
     capL.visible = true;
 
