@@ -528,41 +528,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function buildCapLatheGeometry(outerRadius) {
-    const pts = [
-      new THREE.Vector2(outerRadius * 1.03, 0.0),
-      new THREE.Vector2(outerRadius * 1.03, 0.035),
-      new THREE.Vector2(outerRadius * 1.0, 0.06),
-
-      new THREE.Vector2(outerRadius * 1.0, 0.09),
-
-      new THREE.Vector2(outerRadius * 0.96, 0.102),
-      new THREE.Vector2(outerRadius * 1.0, 0.114),
-
-      new THREE.Vector2(outerRadius * 0.95, 0.132),
-      new THREE.Vector2(outerRadius * 1.0, 0.146),
-
-      new THREE.Vector2(outerRadius * 0.76, 0.22),
-
-      new THREE.Vector2(outerRadius * 0.86, 0.26),
-      new THREE.Vector2(outerRadius * 0.86, 0.33),
-
-      new THREE.Vector2(outerRadius * 0.66, 0.36),
-
-      new THREE.Vector2(outerRadius * 0.62, 0.42),
-      new THREE.Vector2(outerRadius * 0.62, 0.56),
-
-      new THREE.Vector2(outerRadius * 0.50, 0.64),
-      new THREE.Vector2(outerRadius * 0.50, 0.78),
-
-      // NENOVEDAM līdz nullei (citādi “ūsas” no degenerate tris)
-      new THREE.Vector2(outerRadius * 0.20, 0.78),
-    ];
-
-    const radialSegments = 32;
-    let geom = new THREE.LatheGeometry(pts, radialSegments);
-    geom.computeVertexNormals();
-    const capLen = pts[pts.length - 1].y;
-    return { geom, capLen };
+    // debug: vienkāršs cilindrs cap vietā
+  const capLen = 0.78;
+  let geom = new THREE.CylinderGeometry(outerRadius * 1.03, outerRadius * 0.50, capLen, 48, 1);
+  geom.rotateX(Math.PI / 2); // lai ass būtu Z (tāpat kā tev)
+  geom = geom.toNonIndexed();
+  geom.computeVertexNormals();
+  return { geom, capLen };
   }
 
   function makeOrnamentTexture(THREE) {
