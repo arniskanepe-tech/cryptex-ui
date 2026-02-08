@@ -465,6 +465,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     collarRMesh.position.z = rightFace + collarLen / 2 + overlap * 0.25 - 0.03 + 0.06;
     group.add(collarRMesh);
 
+    collarL.visible = false;
+    collarRMesh.visible = false;
+
     // iekšējais “tumšais disks”
     const innerDiskGeom = new THREE.CylinderGeometry(
       outerRadius * 0.62,
