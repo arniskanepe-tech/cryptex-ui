@@ -443,7 +443,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
-    capL.scale.z = -1; // spogulis: lai “iet uz kreiso pusi”
+    capL.rotation.y = Math.PI; // <- 180° pagrieziens, bez negatīva scale
     group.add(capL);
 
     const capR = new THREE.Mesh(capGeom, goldMat);
