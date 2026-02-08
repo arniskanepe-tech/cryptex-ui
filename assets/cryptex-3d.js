@@ -488,8 +488,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
-    innerL.visible = false;
-    innerR.visible = false;
+    innerL.visible = true;
+    innerR.visible = true;
 
     // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
@@ -556,14 +556,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       new THREE.Vector2(outerRadius * 0.50, 0.64),
       new THREE.Vector2(outerRadius * 0.50, 0.78),
 
-      // Aizveram uz asi
-      new THREE.Vector2(0.001, 0.78),
+      // NENOVEDAM līdz nullei (citādi “ūsas” no degenerate tris)
+      new THREE.Vector2(outerRadius * 0.20, 0.78),
     ];
 
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
     const radialSegments = 32; // (6–10) varianti: 6 = vissešstūrīgākais
     let geom = new THREE.LatheGeometry(pts, radialSegments);
-    geom = geom.toNonIndexed();        // <-- svarīgais
     geom.computeVertexNormals();       // <-- svarīgais
     const capLen = pts[pts.length - 1].y;
     return { geom, capLen };
