@@ -399,10 +399,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (LATHE) — hardcore profils:
-  //   - īsāks slīpums
-  //   - "knife-edge" gropes
-  //   - "fiksatora" sajūta (zemāks radialSegments)
+  //  END CAPS (LATHE)
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
@@ -426,7 +423,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.055
+      bumpScale: 0.055,
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
@@ -435,36 +432,48 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.88,
     });
 
+    // ======= DEBUG MATERIAL (testam pret “ūsām”) =======
+    // Ja “ūsas” paliek arī ar šo, vaina ir GEOMETRIJĀ (Lathe pts / degenerates).
+    // Ja pazūd, vaina ir MeshStandardMaterial + normals/bumpMap.
+    const debugMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
     capGeom.rotateX(Math.PI / 2); // Y -> Z
     capGeom.computeVertexNormals();
 
-    const capL = new THREE.Mesh(capGeom, goldMat);
+    // ===== CAPs =====
+    // !!! Te ir vienīgā praktiskā izmaiņa: cap izmanto debugMat (nevis goldMat)
+    const capL = new THREE.Mesh(capGeom, debugMat);
     capL.position.z = leftFace - overlap;
-    capL.rotation.y = Math.PI; // <- 180° pagrieziens, bez negatīva scale
-    // group.add(capL);
+    capL.rotation.y = Math.PI;
+    group.add(capL);
 
-    const capR = new THREE.Mesh(capGeom, goldMat);
+    const capR = new THREE.Mesh(capGeom, debugMat);
     capR.position.z = rightFace + overlap;
-    capR.scale.z = 1;
-    // group.add(capR);
-    
-    capL.visible = true;
+    group.add(capR);
 
     // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
     const collarLen = 0.10; // biezums gar asi
     const collarR = outerRadius * 0.93;
 
-    const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
+    const collarGeom = new THREE.CylinderGeometry(
+      collarR,
+      collarR,
+      collarLen,
+      72,
+      1
+    );
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace - collarLen / 2 - overlap * 0.25 - 0.03 + 0.06;
+    collarL.position.z =
+      leftFace - collarLen / 2 - overlap * 0.25 - 0.03 + 0.06;
     group.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace + collarLen / 2 + overlap * 0.25 - 0.03 + 0.06;
+    collarRMesh.position.z =
+      rightFace + collarLen / 2 + overlap * 0.25 - 0.03 + 0.06;
     group.add(collarRMesh);
 
     collarL.visible = false;
@@ -515,44 +524,33 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
     group.add(arrowR);
 
-    return { group, arrowL, arrowR };
+    return { group, arrowL, arrowR, capL, capR };
   }
 
   function buildCapLatheGeometry(outerRadius) {
-    // Y=0 ir pie body sejas (pie ringiem). Y aug uz āru.
-    // Slīpā zona saīsināta (straujāki kritumi), knife-edge gropes ar ļoti mazu Y starpību.
     const pts = [
-      // pie sejas (lielais diametrs)
-      // Mehānisks "plecs" – disks apstājas šeit
       new THREE.Vector2(outerRadius * 1.03, 0.0),
       new THREE.Vector2(outerRadius * 1.03, 0.035),
-      new THREE.Vector2(outerRadius * 1.0,  0.06),
+      new THREE.Vector2(outerRadius * 1.0, 0.06),
 
-    // pāreja uz esošo profilu
       new THREE.Vector2(outerRadius * 1.0, 0.09),
-      // Knife-edge groove #1 (ļoti šaura)
+
       new THREE.Vector2(outerRadius * 0.96, 0.102),
       new THREE.Vector2(outerRadius * 1.0, 0.114),
 
-      // Knife-edge groove #2 (ļoti šaura)
       new THREE.Vector2(outerRadius * 0.95, 0.132),
       new THREE.Vector2(outerRadius * 1.0, 0.146),
 
-      // Straujš kritums (saīsināts slīpums)
       new THREE.Vector2(outerRadius * 0.76, 0.22),
 
-      // Stop-ring (izteikts pakāpiens)
       new THREE.Vector2(outerRadius * 0.86, 0.26),
       new THREE.Vector2(outerRadius * 0.86, 0.33),
 
-      // Ļoti īss slīpums uz “fiksatoru”
       new THREE.Vector2(outerRadius * 0.66, 0.36),
 
-      // “Fiksators” (cilindrs + gala pakāpiens)
       new THREE.Vector2(outerRadius * 0.62, 0.42),
       new THREE.Vector2(outerRadius * 0.62, 0.56),
 
-      // Pēdējais mazais gredzens (asi)
       new THREE.Vector2(outerRadius * 0.50, 0.64),
       new THREE.Vector2(outerRadius * 0.50, 0.78),
 
@@ -560,10 +558,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       new THREE.Vector2(outerRadius * 0.20, 0.78),
     ];
 
-    // zemāks segments skaits => “mehānisks / sešstūra” iespaids
-    const radialSegments = 32; // (6–10) varianti: 6 = vissešstūrīgākais
+    const radialSegments = 32;
     let geom = new THREE.LatheGeometry(pts, radialSegments);
-    geom.computeVertexNormals();       // <-- svarīgais
+    geom.computeVertexNormals();
     const capLen = pts[pts.length - 1].y;
     return { geom, capLen };
   }
