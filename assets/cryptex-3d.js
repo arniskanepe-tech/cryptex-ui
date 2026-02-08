@@ -426,7 +426,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 0.0
+      bumpScale: 0.055
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
