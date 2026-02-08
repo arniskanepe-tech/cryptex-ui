@@ -458,11 +458,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace - collarLen / 2 - overlap * 0.25;
+    collarL.position.z = leftFace - collarLen / 2 - overlap * 0.25 - 0.03;
     group.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace + collarLen / 2 + overlap * 0.25;
+    collarRMesh.position.z = rightFace + collarLen / 2 + overlap * 0.25 - 0.03;
     group.add(collarRMesh);
 
     // iekšējais “tumšais disks”
