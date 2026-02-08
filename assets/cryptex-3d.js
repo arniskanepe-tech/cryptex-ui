@@ -450,7 +450,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.scale.z = 1;
     group.add(capR);
     
-    capL.visible = false;
+    capL.visible = true;
 
     // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
     const collarLen = 0.10; // biezums gar asi
