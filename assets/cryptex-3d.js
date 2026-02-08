@@ -553,7 +553,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ];
 
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
-    const radialSegments = 32; // (6–10) varianti: 6 = vissešstūrīgākais
+    const radialSegments = 6; // (6–10) varianti: 6 = vissešstūrīgākais
     let geom = new THREE.LatheGeometry(pts, radialSegments);
     geom = geom.toNonIndexed();        // <-- svarīgais
     geom.computeVertexNormals();       // <-- svarīgais
