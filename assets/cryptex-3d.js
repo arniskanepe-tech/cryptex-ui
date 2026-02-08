@@ -426,7 +426,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.58,
       map: patina,
       bumpMap: ornament,
-      bumpScale: 1.0
+      bumpScale: 0.055
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
@@ -555,7 +555,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // zemāks segments skaits => “mehānisks / sešstūra” iespaids
     const radialSegments = 6; // (6–10) varianti: 6 = vissešstūrīgākais
     const geom = new THREE.LatheGeometry(pts, radialSegments);
-
+    geom = geom.toNonIndexed();        // <-- svarīgais
+    geom.computeVertexNormals();       // <-- svarīgais
     const capLen = pts[pts.length - 1].y;
     return { geom, capLen };
   }
