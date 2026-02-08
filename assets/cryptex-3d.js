@@ -449,6 +449,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.position.z = rightFace + overlap;
     capR.scale.z = 1;
     group.add(capR);
+    
+    capL.visible = false;
 
     // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
     const collarLen = 0.10; // biezums gar asi
