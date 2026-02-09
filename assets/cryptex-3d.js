@@ -223,34 +223,35 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
   }
+
   function makeBeveledPlateGeom(THREE, plateT, plateH, plateW) {
-  const w = plateT; // X
-  const h = plateH; // Y
-  const d = plateW; // Z
+    const w = plateT; // X
+    const h = plateH; // Y
+    const d = plateW; // Z
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-w / 2, -h / 2);
-  shape.lineTo( w / 2, -h / 2);
-  shape.lineTo( w / 2,  h / 2);
-  shape.lineTo(-w / 2,  h / 2);
-  shape.closePath();
+    const shape = new THREE.Shape();
+    shape.moveTo(-w / 2, -h / 2);
+    shape.lineTo(w / 2, -h / 2);
+    shape.lineTo(w / 2, h / 2);
+    shape.lineTo(-w / 2, h / 2);
+    shape.closePath();
 
-  const bevel = Math.min(w, h) * 0.16;
-  const bevelSegs = 2;
+    const bevel = Math.min(w, h) * 0.16;
+    const bevelSegs = 2;
 
-  const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: d,
-    bevelEnabled: true,
-    bevelThickness: bevel * 0.55,
-    bevelSize: bevel,
-    bevelSegments: bevelSegs,
-    curveSegments: 1,
-    steps: 1,
-  });
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: d,
+      bevelEnabled: true,
+      bevelThickness: bevel * 0.55,
+      bevelSize: bevel,
+      bevelSegments: bevelSegs,
+      curveSegments: 1,
+      steps: 1,
+    });
 
-  geom.translate(0, 0, -d / 2);
-  geom.computeVertexNormals();
-  return geom;
+    geom.translate(0, 0, -d / 2);
+    geom.computeVertexNormals();
+    return geom;
   }
 
   function createCryptexBodyLocalZ(length, radius) {
@@ -326,21 +327,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       const t = s / (symbols - 1);
 
-    // bronza/zelts gradients (nevis zilgani pelēks)
-    const baseColor = new THREE.Color().setHSL(
-    0.095,                // hue: silti zeltains/bronzas
-    0.35 + 0.10 * t,      // saturation: mazliet dzīvelīgāks uz beigām
-    0.22 + 0.08 * t       // lightness: tumšāks -> gaišāks
-    );
+      // bronza/zelts gradients
+      const baseColor = new THREE.Color().setHSL(
+        0.095,
+        0.35 + 0.1 * t,
+        0.22 + 0.08 * t
+      );
 
-    // izceltais simbols (s === 0) - mazliet gaišāks zeltains
-    if (s === 0) baseColor.setHSL(0.11, 0.55, 0.60);
+      // izceltais simbols
+      if (s === 0) baseColor.setHSL(0.11, 0.55, 0.6);
 
-    const mat = new THREE.MeshStandardMaterial({
-    color: baseColor.clone(),
-    roughness: 0.38,      // “gludāks” (mazāk plastmasas)
-    metalness: 0.35,      // vairāk metālisks
-    });
+      const mat = new THREE.MeshStandardMaterial({
+        color: baseColor.clone(),
+        roughness: 0.38,
+        metalness: 0.35,
+      });
 
       const p = new THREE.Mesh(plateGeom, mat);
 
@@ -357,23 +358,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const tex = makeDigitTexture(THREE, digitText);
 
       const labelMat = new THREE.MeshStandardMaterial({
-      map: tex,
-      transparent: true,
-      opacity: 0.85,
+        map: tex,
+        transparent: true,
+        opacity: 0.85,
 
-      // “gravējums” = lai reaģē uz gaismu, bet paliek tumšs
-      color: 0x1a130b,
-      metalness: 0.05,
-      roughness: 0.95,
+        // “gravējums”
+        color: 0x1a130b,
+        metalness: 0.05,
+        roughness: 0.95,
 
-      depthTest: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
 
-      // pret z-fighting uz bevel virsmām
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
+        // pret z-fighting uz bevel virsmām
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
       });
 
       const labelPlane = new THREE.Mesh(
@@ -384,7 +385,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         labelMat
       );
 
-      labelPlane.renderOrder = 10; // lai zīmējas “pa virsu” stabilāk
+      labelPlane.renderOrder = 10;
 
       scratchOut.set(p.position.x, p.position.y, 0).normalize();
       scratchInvQ.copy(p.quaternion).invert();
@@ -396,18 +397,16 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       labelPlane.position.set(0, 0, 0);
       labelPlane.rotation.set(0, 0, 0);
 
-      const ENGRAVE_INSET = 0.028; // 0.02–0.04, vari vēlāk regulēt
+      const ENGRAVE_INSET = 0.028; // 0.02–0.04
 
       if (useY) {
-      // 🔽 iegravējam ciparu IEKŠĀ plāksnītē
-      labelPlane.position.y = sign * (plateH / 2 - ENGRAVE_INSET);
-      labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
-      p.userData.labelNormalLocal = new THREE.Vector3(0, sign, 0);
-        } else {
-      // 🔽 iegravējam ciparu IEKŠĀ plāksnītē
-      labelPlane.position.x = sign * (plateT / 2 - ENGRAVE_INSET);
-      labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
-      p.userData.labelNormalLocal = new THREE.Vector3(sign, 0, 0);
+        labelPlane.position.y = sign * (plateH / 2 - ENGRAVE_INSET);
+        labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
+        p.userData.labelNormalLocal = new THREE.Vector3(0, sign, 0);
+      } else {
+        labelPlane.position.x = sign * (plateT / 2 - ENGRAVE_INSET);
+        labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
+        p.userData.labelNormalLocal = new THREE.Vector3(sign, 0, 0);
       }
 
       p.add(labelPlane);
@@ -423,7 +422,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return group;
   }
 
-    function makeDigitTexture(THREE, text) {
+  function makeDigitTexture(THREE, text) {
     const size = 256;
     const c = document.createElement("canvas");
     c.width = size;
@@ -465,168 +464,161 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   // ============================================================
 
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
-  const group = new THREE.Group();
+    const group = new THREE.Group();
 
-  const overlap = 0.06;
-  const leftFace = -bodyLength / 2;
-  const rightFace = bodyLength / 2;
+    const overlap = 0.06;
+    const leftFace = -bodyLength / 2;
+    const rightFace = bodyLength / 2;
 
-  const ornament = makeOrnamentTexture(THREE);
-  ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
-  ornament.repeat.set(6, 1);
+    const ornament = makeOrnamentTexture(THREE);
+    ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
+    ornament.repeat.set(6, 1);
 
-  const patina = makePatinaTexture(THREE);
-  patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
-  patina.repeat.set(3, 1);
+    const patina = makePatinaTexture(THREE);
+    patina.wrapS = patina.wrapT = THREE.RepeatWrapping;
+    patina.repeat.set(3, 1);
 
-  // === 2x “gaišāks” cap materiāls (lai reljefs izlec) ===
+    // === 2x “gaišāks” cap materiāls ===
     const goldMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,          // svarīgi: ļauj vertexColor joslām dominēt
-    vertexColors: true,       // svarīgi
-    metalness: 0.86,
-    roughness: 0.42,
-    bumpMap: ornament,
-    bumpScale: 0.095,
-    emissive: 0x2c2514,
-    emissiveIntensity: 0.85,  // drošs “2x gaišāk” efekts
-  });
-
-  const darkMat = new THREE.MeshStandardMaterial({
-    color: 0x050505,
-    metalness: 0.15,
-    roughness: 0.88,
-  });
-
-  // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
-  const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
-  capGeom.rotateX(Math.PI / 2); // Y -> Z
-  capGeom.computeVertexNormals();
-
-  // ✅ IESLĒDZAM banded krāsas uz cap ģeometrijas
-  applyCapBandVertexColors(capGeom);
-
-  // ===== CAPs =====
-  const capL = new THREE.Mesh(capGeom, goldMat);
-  capL.position.z = leftFace - overlap;
-  capL.rotation.y = Math.PI;
-  group.add(capL);
-
-  const capR = new THREE.Mesh(capGeom, goldMat);
-  capR.position.z = rightFace + overlap;
-  group.add(capR);
-
-  // ============================================================
-  // spraugas nosedzējs (apkakle) – NEKO citu te nemainu
-  // ============================================================
-  const collarLen = 0.18;
-  const collarR = outerRadius * 1.04;
-
-  const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
-  collarGeom.rotateX(Math.PI / 2);
-
-  const collarL = new THREE.Mesh(collarGeom, darkMat);
-  collarL.position.z = leftFace + collarLen / 2 - 0.06;
-  group.add(collarL);
-
-  const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-  collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
-  group.add(collarRMesh);
-
-  collarL.visible = true;
-  collarRMesh.visible = true;
-
-  // iekšējais “tumšais disks”
-  const innerDiskGeom = new THREE.CylinderGeometry(
-    outerRadius * 0.62,
-    outerRadius * 0.62,
-    0.06,
-    60,
-    1
-  );
-  innerDiskGeom.rotateX(Math.PI / 2);
-
-  const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
-  innerL.position.z = leftFace - overlap - capLen - 0.02;
-  group.add(innerL);
-
-  const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
-  innerR.position.z = rightFace + overlap + capLen + 0.02;
-  group.add(innerR);
-
-  innerL.visible = true;
-  innerR.visible = true;
-
-  // ============================================================
-  // JAUNS: “akcenta riņķi” kā atsevišķi mesh (kontrasts 100% redzams)
-  //  - 3 riņķi katrā pusē
-  //  - katram sava krāsa + emissive (lai izlec arī tumšumā)
-  // ============================================================
-  const accents = [
-    { r: outerRadius * 0.99, tube: 0.030, z: 0.06,  color: 0xd1b36a, em: 0x3a2a12, ei: 0.65 },
-    { r: outerRadius * 0.93, tube: 0.024, z: 0.16,  color: 0x8f6e2a, em: 0x241a0b, ei: 0.55 },
-    { r: outerRadius * 0.86, tube: 0.020, z: 0.26,  color: 0x3b2b14, em: 0x120c06, ei: 0.45 },
-  ];
-
-  function makeAccentMat(hex, emissiveHex, emissiveIntensity) {
-  return new THREE.MeshStandardMaterial({
-    color: hex,
-    metalness: 0.75,
-    roughness: 0.35,
-    emissive: emissiveHex,
-    emissiveIntensity,
+      color: 0xffffff,
+      vertexColors: true,
+      metalness: 0.86,
+      roughness: 0.42,
+      bumpMap: ornament,
+      bumpScale: 0.095,
+      emissive: 0x2c2514,
+      emissiveIntensity: 0.85,
     });
+
+    const darkMat = new THREE.MeshStandardMaterial({
+      color: 0x050505,
+      metalness: 0.15,
+      roughness: 0.88,
+    });
+
+    const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
+    capGeom.rotateX(Math.PI / 2);
+    capGeom.computeVertexNormals();
+
+    applyCapBandVertexColors(capGeom);
+
+    const capL = new THREE.Mesh(capGeom, goldMat);
+    capL.position.z = leftFace - overlap;
+    capL.rotation.y = Math.PI;
+    group.add(capL);
+
+    const capR = new THREE.Mesh(capGeom, goldMat);
+    capR.position.z = rightFace + overlap;
+    group.add(capR);
+
+    // ============================================================
+    // spraugas nosedzējs (apkakle)
+    // ============================================================
+    const collarLen = 0.18;
+    const collarR = outerRadius * 1.04;
+
+    const collarGeom = new THREE.CylinderGeometry(
+      collarR,
+      collarR,
+      collarLen,
+      72,
+      1
+    );
+    collarGeom.rotateX(Math.PI / 2);
+
+    const collarL = new THREE.Mesh(collarGeom, darkMat);
+    collarL.position.z = leftFace + collarLen / 2 - 0.06;
+    group.add(collarL);
+
+    const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
+    group.add(collarRMesh);
+
+    collarL.visible = true;
+    collarRMesh.visible = true;
+
+    // iekšējais “tumšais disks”
+    const innerDiskGeom = new THREE.CylinderGeometry(
+      outerRadius * 0.62,
+      outerRadius * 0.62,
+      0.06,
+      60,
+      1
+    );
+    innerDiskGeom.rotateX(Math.PI / 2);
+
+    const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
+    innerL.position.z = leftFace - overlap - capLen - 0.02;
+    group.add(innerL);
+
+    const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
+    innerR.position.z = rightFace + overlap + capLen + 0.02;
+    group.add(innerR);
+
+    innerL.visible = true;
+    innerR.visible = true;
+
+    // ============================================================
+    // “akcenta riņķi”
+    // ============================================================
+    const accents = [
+      { r: outerRadius * 0.99, tube: 0.03, z: 0.06, color: 0xd1b36a, em: 0x3a2a12, ei: 0.65 },
+      { r: outerRadius * 0.93, tube: 0.024, z: 0.16, color: 0x8f6e2a, em: 0x241a0b, ei: 0.55 },
+      { r: outerRadius * 0.86, tube: 0.02, z: 0.26, color: 0x3b2b14, em: 0x120c06, ei: 0.45 },
+    ];
+
+    function makeAccentMat(hex, emissiveHex, emissiveIntensity) {
+      return new THREE.MeshStandardMaterial({
+        color: hex,
+        metalness: 0.75,
+        roughness: 0.35,
+        emissive: emissiveHex,
+        emissiveIntensity,
+      });
+    }
+
+    for (const a of accents) {
+      const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
+      const zOnCollar = collarLen * 0.05;
+
+      const mR = makeAccentMat(a.color, a.em, a.ei);
+      const ringR = new THREE.Mesh(torusGeom, mR);
+      ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
+      group.add(ringR);
+
+      const mL = makeAccentMat(a.color, a.em, a.ei);
+      const ringL = new THREE.Mesh(torusGeom, mL);
+      ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
+      group.add(ringL);
+    }
+
+    // ===== bultas (sprites) =====
+    const arrowTex = makeArrowTexture(THREE);
+    const arrowMat = new THREE.SpriteMaterial({
+      map: arrowTex,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: false,
+    });
+
+    const arrowScale = 0.65;
+    const arrowInset = 0.06;
+
+    const arrowL = new THREE.Sprite(arrowMat.clone());
+    arrowL.material.rotation = 0; // ->
+    arrowL.scale.set(arrowScale, arrowScale, 1);
+    arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
+    group.add(arrowL);
+
+    const arrowR = new THREE.Sprite(arrowMat.clone());
+    arrowR.material.rotation = Math.PI; // <-
+    arrowR.scale.set(arrowScale, arrowScale, 1);
+    arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
+    group.add(arrowR);
+
+    return { group, arrowL, arrowR, capL, capR };
   }
 
-  for (const a of accents) {
-  // diametrs balstīts uz MELNĀS APKAKLES rādiusu (collarR), nevis uz cap a.r
-  const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
-
-  // “uz apkakles” = turpat, kur ir collarL / collarRMesh
-  const zOnCollar = collarLen * 0.05;
-
-  // Right side (apkakles zonā)
-  const mR = makeAccentMat(a.color, a.em, a.ei);
-  const ringR = new THREE.Mesh(torusGeom, mR);
-  ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
-  ringR.rotation.set(0, 0, 0);
-  group.add(ringR);
-
-  // Left side (apkakles zonā)
-  const mL = makeAccentMat(a.color, a.em, a.ei);
-  const ringL = new THREE.Mesh(torusGeom, mL);
-  ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
-  ringL.rotation.set(0, 0, 0);
-  group.add(ringL);
-}
-
-  // ===== bultas (sprites) =====
-  const arrowTex = makeArrowTexture(THREE);
-  const arrowMat = new THREE.SpriteMaterial({
-    map: arrowTex,
-    transparent: true,
-    opacity: 0.95,
-    depthTest: false,
-  });
-
-  const arrowScale = 0.65;
-  const arrowInset = 0.06;
-
-  const arrowL = new THREE.Sprite(arrowMat.clone());
-  arrowL.material.rotation = 0; // ->
-  arrowL.scale.set(arrowScale, arrowScale, 1);
-  arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
-  group.add(arrowL);
-
-  const arrowR = new THREE.Sprite(arrowMat.clone());
-  arrowR.material.rotation = Math.PI; // <-
-  arrowR.scale.set(arrowScale, arrowScale, 1);
-  arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
-  group.add(arrowR);
-
-  return { group, arrowL, arrowR, capL, capR };
-}
-
-  // ===== stabils Lathe profils (bez “ūsām”) =====
   function buildCapLatheGeometry(outerRadius) {
     const pts = [
       new THREE.Vector2(outerRadius * 1.03, 0.0),
@@ -652,13 +644,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return { geom, capLen };
   }
 
-  // ===== JAUNS: “banded” krāsas cap ģeometrijai, lai izceļ gredzenus =====
   function applyCapBandVertexColors(geom) {
     const pos = geom.getAttribute("position");
     const count = pos.count;
 
-    // atrodam Z diapazonu (pēc rotateX ass ir Z)
-    let minZ = Infinity, maxZ = -Infinity;
+    let minZ = Infinity,
+      maxZ = -Infinity;
     for (let i = 0; i < count; i++) {
       const z = pos.getZ(i);
       if (z < minZ) minZ = z;
@@ -666,20 +657,22 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     }
     const span = Math.max(1e-6, maxZ - minZ);
 
-    // 5 joslas (vari mainīt toņus vēlāk)
-        const bandColors = [
-      new THREE.Color(0x0f0b08), // ļoti tumšs
-      new THREE.Color(0x5a3f1e), // silts vidējs
-      new THREE.Color(0xe3c57a), // ļoti gaišs “highlight”
-      new THREE.Color(0x8a6b2d), // gold
-      new THREE.Color(0x241a12), // tumšs atkal
+    const bandColors = [
+      new THREE.Color(0x0f0b08),
+      new THREE.Color(0x5a3f1e),
+      new THREE.Color(0xe3c57a),
+      new THREE.Color(0x8a6b2d),
+      new THREE.Color(0x241a12),
     ];
 
     const colors = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const z = pos.getZ(i);
-      const t = (z - minZ) / span; // 0..1
-      const band = Math.max(0, Math.min(bandColors.length - 1, Math.floor(t * bandColors.length)));
+      const t = (z - minZ) / span;
+      const band = Math.max(
+        0,
+        Math.min(bandColors.length - 1, Math.floor(t * bandColors.length))
+      );
       const c = bandColors[band];
 
       colors[i * 3 + 0] = c.r;
@@ -691,9 +684,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function makeOrnamentTexture(THREE) {
-    const w = 512, h = 128;
+    const w = 512,
+      h = 128;
     const c = document.createElement("canvas");
-    c.width = w; c.height = h;
+    c.width = w;
+    c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "rgb(128,128,128)";
@@ -741,9 +736,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function makePatinaTexture(THREE) {
-    const w = 512, h = 256;
+    const w = 512,
+      h = 256;
     const c = document.createElement("canvas");
-    c.width = w; c.height = h;
+    c.width = w;
+    c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "#8A6B2D";
