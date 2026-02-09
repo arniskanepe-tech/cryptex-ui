@@ -518,7 +518,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   for (const a of accents) {
   const torusGeom = new THREE.TorusGeometry(a.r * 0.86, a.tube, 14, 96);
 
-  const zFromCapFace = capLen * 0.22; // <— VIETA uz gala uzgaļa
+  const zFromCapFace = capLen * 0.06; // <— VIETA uz gala uzgaļa
 
   // Right side
   const mR = makeAccentMat(a.color, a.em, a.ei);
