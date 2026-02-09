@@ -516,21 +516,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   for (const a of accents) {
-  const torusGeom = new THREE.TorusGeometry(a.r * 1.02, a.tube, 14, 96);
+  // diametrs balstīts uz MELNĀS APKAKLES rādiusu (collarR), nevis uz cap a.r
+  const torusGeom = new THREE.TorusGeometry(collarR * 1.03, a.tube, 14, 96);
 
-  const zFromCapFace = capLen * 0.06; // <— VIETA uz gala uzgaļa
+  // “uz apkakles” = turpat, kur ir collarL / collarRMesh
+  const zOnCollar = collarLen * 0.05;
 
-  // Right side
+  // Right side (apkakles zonā)
   const mR = makeAccentMat(a.color, a.em, a.ei);
   const ringR = new THREE.Mesh(torusGeom, mR);
-  ringR.position.set(0, 0, rightFace + overlap - zFromCapFace);
+  ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
   ringR.rotation.set(0, 0, 0);
   group.add(ringR);
 
-  // Left side
+  // Left side (apkakles zonā)
   const mL = makeAccentMat(a.color, a.em, a.ei);
   const ringL = new THREE.Mesh(torusGeom, mL);
-  ringL.position.set(0, 0, leftFace - overlap + zFromCapFace);
+  ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
   ringL.rotation.set(0, 0, 0);
   group.add(ringL);
 }
