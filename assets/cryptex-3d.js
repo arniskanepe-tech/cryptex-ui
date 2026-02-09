@@ -437,46 +437,39 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capGeom.rotateX(Math.PI / 2); // Y -> Z
     capGeom.computeVertexNormals();
 
+    // ===== JAUNĀ KOREKCIJA: iekrāsojam cap pa “gredzeniem” (vertex colors) =====
+    applyCapBandVertexColors(capGeom);
+
+    // cap materiāls ar vertexColors (saglabā tekstūru/bump, bet dod kontrastu starp elementiem)
+    const capMat = goldMat.clone();
+    capMat.vertexColors = true;
+    capMat.color.set(0xffffff); // lai vertex krāsas “vada” toni
+
     // ===== CAPs =====
-    const capL = new THREE.Mesh(capGeom, goldMat);
+    const capL = new THREE.Mesh(capGeom, capMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
     group.add(capL);
 
-    const capR = new THREE.Mesh(capGeom, goldMat);
+    const capR = new THREE.Mesh(capGeom, capMat.clone());
     capR.position.z = rightFace + overlap;
     group.add(capR);
 
     // ============================================================
-    // JAUNĀ KOREKCIJA: izceļ gala “gredzenus” ar dažādiem toņiem
-    // (plānas cilindru joslas kā dekoratīvi riņķi, bez Lathe pārbūves)
-    // ============================================================
-    addCapAccentBands(capL, outerRadius);
-    addCapAccentBands(capR, outerRadius);
-
-    // ============================================================
     // PĒDĒJĀS KOREKCIJAS (spraugas nosedzējs, stabils uz jebkura zoom)
-    //  - apkakle kļūst nedaudz LIELĀKA un BIEZĀKA
-    //  - pozīcija balstās uz leftFace/rightFace (nevis overlap “čakarēšana”)
     // ============================================================
-    const collarLen = 0.18;             // biezāka, lai nekad neizlien sprauga
-    const collarR = outerRadius * 1.04; // nedaudz lielāka par cap ārējo rādiusu
+    const collarLen = 0.18;
+    const collarR = outerRadius * 1.04;
 
-    const collarGeom = new THREE.CylinderGeometry(
-      collarR,
-      collarR,
-      collarLen,
-      72,
-      1
-    );
+    const collarGeom = new THREE.CylinderGeometry(collarR, collarR, collarLen, 72, 1);
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace + collarLen / 2 - 0.06; // ieiet zem ringa malas
+    collarL.position.z = leftFace + collarLen / 2 - 0.06;
     group.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06; // simetriski otrā pusē
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
     group.add(collarRMesh);
 
     collarL.visible = true;
@@ -528,71 +521,20 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     group.add(arrowR);
 
     return { group, arrowL, arrowR, capL, capR };
-
-    // ---- helper: pievieno 4 “toņu riņķus” capam (lokālajā Z) ----
-    function addCapAccentBands(capMesh, outerR) {
-      // plānas joslas ar dažādiem toņiem + mazliet atšķirīgu metal/rough,
-      // lai reljefs “noķer” gaismu
-      const mats = [
-        new THREE.MeshStandardMaterial({
-          color: 0x1a1a1a,
-          metalness: 0.25,
-          roughness: 0.65,
-        }),
-        new THREE.MeshStandardMaterial({
-          color: 0x2a241c,
-          metalness: 0.35,
-          roughness: 0.62,
-        }),
-        new THREE.MeshStandardMaterial({
-          color: 0x101010,
-          metalness: 0.15,
-          roughness: 0.78,
-        }),
-        new THREE.MeshStandardMaterial({
-          color: 0x332814,
-          metalness: 0.28,
-          roughness: 0.70,
-        }),
-      ];
-
-      // Z pozīcijas pa cap garumu (lokālajā cap koordinātē)
-      // (atstāju drošu rezervi, lai netraucē bultiņām un ringiem)
-      const zList = [0.08, 0.18, 0.30, 0.44];
-      const lenList = [0.06, 0.05, 0.055, 0.05];
-
-      // rādiusi – mazliet dažādi, lai “gredzeni” izlec
-      const rList = [outerR * 0.98, outerR * 0.93, outerR * 0.89, outerR * 0.85];
-
-      for (let i = 0; i < zList.length; i++) {
-        const g = new THREE.CylinderGeometry(rList[i], rList[i], lenList[i], 64, 1);
-        g.rotateX(Math.PI / 2); // ass uz Z
-
-        const band = new THREE.Mesh(g, mats[i % mats.length]);
-        band.position.z = zList[i];
-        capMesh.add(band);
-      }
-    }
   }
 
   // ===== stabils Lathe profils (bez “ūsām”) =====
   function buildCapLatheGeometry(outerRadius) {
     const pts = [
-      // pie body sejas – stabils cilindrs
-      new THREE.Vector2(outerRadius * 1.03, 0.00),
+      new THREE.Vector2(outerRadius * 1.03, 0.0),
       new THREE.Vector2(outerRadius * 1.03, 0.08),
 
-      // plecs
       new THREE.Vector2(outerRadius * 0.98, 0.14),
       new THREE.Vector2(outerRadius * 0.98, 0.22),
 
-      // fiksatora slīpums (ne pārāk ass)
       new THREE.Vector2(outerRadius * 0.82, 0.34),
-
-      // fiksatora cilindrs
       new THREE.Vector2(outerRadius * 0.82, 0.48),
 
-      // gala konuss
       new THREE.Vector2(outerRadius * 0.60, 0.62),
       new THREE.Vector2(outerRadius * 0.60, 0.78),
     ];
@@ -607,12 +549,48 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return { geom, capLen };
   }
 
+  // ===== JAUNS: “banded” krāsas cap ģeometrijai, lai izceļ gredzenus =====
+  function applyCapBandVertexColors(geom) {
+    const pos = geom.getAttribute("position");
+    const count = pos.count;
+
+    // atrodam Z diapazonu (pēc rotateX ass ir Z)
+    let minZ = Infinity, maxZ = -Infinity;
+    for (let i = 0; i < count; i++) {
+      const z = pos.getZ(i);
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+    const span = Math.max(1e-6, maxZ - minZ);
+
+    // 5 joslas (vari mainīt toņus vēlāk)
+    const bandColors = [
+      new THREE.Color(0x1a1410), // tumšāks
+      new THREE.Color(0x3a2b1c), // siltāks
+      new THREE.Color(0x6a4e2a), // gaišāks bronzas
+      new THREE.Color(0x2a2017), // atkal tumšāks
+      new THREE.Color(0x8a6b2d), // tuvāk “gold”
+    ];
+
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const z = pos.getZ(i);
+      const t = (z - minZ) / span; // 0..1
+      const band = Math.max(0, Math.min(bandColors.length - 1, Math.floor(t * bandColors.length)));
+      const c = bandColors[band];
+
+      colors[i * 3 + 0] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+
+    geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  }
+
   function makeOrnamentTexture(THREE) {
-    const w = 512,
-      h = 128;
+    const w = 512, h = 128;
     const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
+    c.width = w; c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "rgb(128,128,128)";
@@ -649,14 +627,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const midY = h * 0.52;
       ctx.beginPath();
       ctx.moveTo(x + 14, midY - 2);
-      ctx.bezierCurveTo(
-        x + 38,
-        midY - 30,
-        x + 68,
-        midY + 30,
-        x + 92,
-        midY - 2
-      );
+      ctx.bezierCurveTo(x + 38, midY - 30, x + 68, midY + 30, x + 92, midY - 2);
       ctx.stroke();
     }
 
@@ -667,11 +638,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function makePatinaTexture(THREE) {
-    const w = 512,
-      h = 256;
+    const w = 512, h = 256;
     const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
+    c.width = w; c.height = h;
     const ctx = c.getContext("2d");
 
     ctx.fillStyle = "#8A6B2D";
@@ -699,9 +668,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     ctx.globalAlpha = 0.12;
     ctx.fillStyle = "#ffffff";
-    for (let x = 0; x < w; x += 18) {
-      ctx.fillRect(x, 0, 2, h);
-    }
+    for (let x = 0; x < w; x += 18) ctx.fillRect(x, 0, 2, h);
     ctx.globalAlpha = 1;
 
     const tex = new THREE.CanvasTexture(c);
