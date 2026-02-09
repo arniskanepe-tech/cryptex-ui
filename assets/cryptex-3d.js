@@ -356,19 +356,25 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const digitText = String(s);
       const tex = makeDigitTexture(THREE, digitText);
 
-      const labelMat = new THREE.MeshBasicMaterial({
+      const labelMat = new THREE.MeshStandardMaterial({
       map: tex,
       transparent: true,
-      opacity: 0.92,
+      opacity: 0.85,
+
+      // “gravējums” = lai reaģē uz gaismu, bet paliek tumšs
+      color: 0x1a130b,
+      metalness: 0.05,
+      roughness: 0.95,
+
       depthTest: true,
       depthWrite: false,
       side: THREE.DoubleSide,
 
-      // ✅ palīdz pret “z-fighting” uz bevel virsmām
+      // pret z-fighting uz bevel virsmām
       polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
-    });
+      });
 
       const labelPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(
