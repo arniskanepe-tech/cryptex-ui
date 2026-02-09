@@ -378,6 +378,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         labelMat
       );
 
+      labelPlane.renderOrder = 10; // lai zīmējas “pa virsu” stabilāk
+
       scratchOut.set(p.position.x, p.position.y, 0).normalize();
       scratchInvQ.copy(p.quaternion).invert();
       scratchLocal.copy(scratchOut).applyQuaternion(scratchInvQ);
