@@ -316,7 +316,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const ringR = radius + plateH * 0.3;
     const plateGeom = makeBeveledPlateGeom(THREE, plateT, plateH, plateW);
 
-    const EPS = 0.006;
+    const EPS = 0.035;
     const scratchOut = new THREE.Vector3();
     const scratchInvQ = new THREE.Quaternion();
     const scratchLocal = new THREE.Vector3();
@@ -357,13 +357,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const tex = makeDigitTexture(THREE, digitText);
 
       const labelMat = new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        opacity: 0.92,
-        depthTest: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
+      map: tex,
+      transparent: true,
+      opacity: 0.92,
+      depthTest: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+
+      // ✅ palīdz pret “z-fighting” uz bevel virsmām
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
 
       const labelPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(
