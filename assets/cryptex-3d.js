@@ -406,7 +406,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return group;
   }
 
-  function makeDigitTexture(THREE, text) {
+    function makeDigitTexture(THREE, text) {
     const size = 256;
     const c = document.createElement("canvas");
     c.width = size;
@@ -419,12 +419,20 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    ctx.lineWidth = 18;
-    ctx.strokeStyle = "rgba(0,0,0,0.70)";
-    ctx.strokeText(text, size / 2, size / 2 + 4);
+    const x = size / 2;
+    const y = size / 2 + 4;
 
-    ctx.fillStyle = "rgba(255,255,255,0.96)";
-    ctx.fillText(text, size / 2, size / 2 + 4);
+    // 1) tumšā apakšējā ēna (iegravējums)
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillText(text, x + 3, y + 4);
+
+    // 2) gaišā augšējā mala
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.fillText(text, x - 1, y - 1);
+
+    // 3) pats cipars (tumšs metāla gravējums)
+    ctx.fillStyle = "rgba(20,15,8,0.95)";
+    ctx.fillText(text, x, y);
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
