@@ -437,7 +437,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capGeom.rotateX(Math.PI / 2); // Y -> Z
     capGeom.computeVertexNormals();
 
-    // ===== CAPs (atpakaļ uz goldMat) =====
+    // ===== CAPs =====
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
@@ -447,9 +447,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.position.z = rightFace + overlap;
     group.add(capR);
 
-    // ===== FIX: melna “apkakle”, kas aizsedz balto spraugu pie sejas =====
-    const collarLen = 0.10; // biezums gar asi
-    const collarR = outerRadius * 0.93;
+    // ============================================================
+    // PĒDĒJĀS KOREKCIJAS (spraugas nosedzējs, stabils uz jebkura zoom)
+    //  - apkakle kļūst nedaudz LIELĀKA un BIEZĀKA
+    //  - pozīcija balstās uz leftFace/rightFace (nevis overlap “čakarēšana”)
+    // ============================================================
+    const collarLen = 0.18;            // biezāka, lai nekad neizlien sprauga
+    const collarR = outerRadius * 1.01; // nedaudz lielāka par cap ārējo rādiusu
 
     const collarGeom = new THREE.CylinderGeometry(
       collarR,
@@ -461,13 +465,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z =
-      leftFace - collarLen / 2 - overlap * 0.25 - 0.03 + 0.06;
+    collarL.position.z = leftFace + collarLen / 2 - 0.02; // ieiet zem ringa malas
     group.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z =
-      rightFace + collarLen / 2 + overlap * 0.25 - 0.03 + 0.06;
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.02; // simetriski otrā pusē
     group.add(collarRMesh);
 
     collarL.visible = true;
@@ -521,7 +523,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return { group, arrowL, arrowR, capL, capR };
   }
 
-  // ===== PĒDĒJĀ KOREKCIJA: stabils Lathe profils (bez “ūsām”) =====
+  // ===== stabils Lathe profils (bez “ūsām”) =====
   function buildCapLatheGeometry(outerRadius) {
     const pts = [
       // pie body sejas – stabils cilindrs
