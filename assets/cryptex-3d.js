@@ -426,10 +426,26 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       bumpScale: 0.055,
     });
 
-    const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x050505,
-      metalness: 0.15,
-      roughness: 0.88,
+    // ============================================================
+    // PĒDĒJIE IETEIKUMI: dažādi tumšie toņi katram gala elementam,
+    // lai reljefs kļūst salasāms (bez gaismu “uzskrūvēšanas”)
+    // ============================================================
+    const darkOuterMat = new THREE.MeshStandardMaterial({
+      color: 0x0b0b0b,
+      metalness: 0.25,
+      roughness: 0.85,
+    });
+
+    const darkMidMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a,
+      metalness: 0.35,
+      roughness: 0.65,
+    });
+
+    const darkInnerMat = new THREE.MeshStandardMaterial({
+      color: 0x262626,
+      metalness: 0.45,
+      roughness: 0.45,
     });
 
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
@@ -438,6 +454,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capGeom.computeVertexNormals();
 
     // ===== CAPs =====
+    // (atstājam kā bija) — goldMat
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
@@ -447,13 +464,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.position.z = rightFace + overlap;
     group.add(capR);
 
-    // ============================================================
-    // PĒDĒJĀS KOREKCIJAS (spraugas nosedzējs, stabils uz jebkura zoom)
-    //  - apkakle kļūst nedaudz LIELĀKA un BIEZĀKA
-    //  - pozīcija balstās uz leftFace/rightFace (nevis overlap “čakarēšana”)
-    // ============================================================
-    const collarLen = 0.18;            // biezāka, lai nekad neizlien sprauga
-    const collarR = outerRadius * 1.04; // nedaudz lielāka par cap ārējo rādiusu
+    // ===== apkakle (collar) =====
+    // (nepārmainām ģeometriju/pozīcijas — tikai materiālu)
+    const collarLen = 0.18;
+    const collarR = outerRadius * 1.04;
 
     const collarGeom = new THREE.CylinderGeometry(
       collarR,
@@ -464,18 +478,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     collarGeom.rotateX(Math.PI / 2);
 
-    const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace + collarLen / 2 - 0.06; // ieiet zem ringa malas
+    const collarL = new THREE.Mesh(collarGeom, darkMidMat);
+    collarL.position.z = leftFace + collarLen / 2 - 0.06;
     group.add(collarL);
 
-    const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06; // simetriski otrā pusē
+    const collarRMesh = new THREE.Mesh(collarGeom, darkMidMat);
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
     group.add(collarRMesh);
 
     collarL.visible = true;
     collarRMesh.visible = true;
 
-    // iekšējais “tumšais disks”
+    // ===== iekšējais disks =====
+    // (nepārmainām ģeometriju/pozīcijas — tikai materiālu)
     const innerDiskGeom = new THREE.CylinderGeometry(
       outerRadius * 0.62,
       outerRadius * 0.62,
@@ -485,16 +500,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     innerDiskGeom.rotateX(Math.PI / 2);
 
-    const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
+    const innerL = new THREE.Mesh(innerDiskGeom, darkInnerMat);
     innerL.position.z = leftFace - overlap - capLen - 0.02;
     group.add(innerL);
 
-    const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
+    const innerR = new THREE.Mesh(innerDiskGeom, darkInnerMat);
     innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
     innerL.visible = true;
     innerR.visible = true;
+
+    // (ja tev vēl ir kādi “papild-riņķi” galos citur kodā, tiem dotu darkOuterMat)
+    // bet šajā failā tādu nav — šeit ir cap/collar/inner.
 
     // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
