@@ -396,14 +396,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       labelPlane.position.set(0, 0, 0);
       labelPlane.rotation.set(0, 0, 0);
 
+      const ENGRAVE_INSET = 0.028; // 0.02–0.04, vari vēlāk regulēt
+
       if (useY) {
-        labelPlane.position.y = sign * (plateH / 2 + EPS);
-        labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
-        p.userData.labelNormalLocal = new THREE.Vector3(0, sign, 0);
-      } else {
-        labelPlane.position.x = sign * (plateT / 2 + EPS);
-        labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
-        p.userData.labelNormalLocal = new THREE.Vector3(sign, 0, 0);
+      // 🔽 iegravējam ciparu IEKŠĀ plāksnītē
+      labelPlane.position.y = sign * (plateH / 2 - ENGRAVE_INSET);
+      labelPlane.rotation.x = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
+      p.userData.labelNormalLocal = new THREE.Vector3(0, sign, 0);
+        } else {
+      // 🔽 iegravējam ciparu IEKŠĀ plāksnītē
+      labelPlane.position.x = sign * (plateT / 2 - ENGRAVE_INSET);
+      labelPlane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
+      p.userData.labelNormalLocal = new THREE.Vector3(sign, 0, 0);
       }
 
       p.add(labelPlane);
