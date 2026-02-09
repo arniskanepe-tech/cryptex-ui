@@ -517,7 +517,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   for (const a of accents) {
   // diametrs balstīts uz MELNĀS APKAKLES rādiusu (collarR), nevis uz cap a.r
-  const torusGeom = new THREE.TorusGeometry(collarR * 1.03, a.tube, 14, 96);
+  const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
 
   // “uz apkakles” = turpat, kur ir collarL / collarRMesh
   const zOnCollar = collarLen * 0.05;
