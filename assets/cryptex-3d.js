@@ -223,6 +223,35 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
   }
+  function makeBeveledPlateGeom(THREE, plateT, plateH, plateW) {
+  const w = plateT; // X
+  const h = plateH; // Y
+  const d = plateW; // Z
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-w / 2, -h / 2);
+  shape.lineTo( w / 2, -h / 2);
+  shape.lineTo( w / 2,  h / 2);
+  shape.lineTo(-w / 2,  h / 2);
+  shape.closePath();
+
+  const bevel = Math.min(w, h) * 0.16;
+  const bevelSegs = 2;
+
+  const geom = new THREE.ExtrudeGeometry(shape, {
+    depth: d,
+    bevelEnabled: true,
+    bevelThickness: bevel * 0.55,
+    bevelSize: bevel,
+    bevelSegments: bevelSegs,
+    curveSegments: 1,
+    steps: 1,
+  });
+
+  geom.translate(0, 0, -d / 2);
+  geom.computeVertexNormals();
+  return geom;
+  }
 
   function createCryptexBodyLocalZ(length, radius) {
     const geom = new THREE.CylinderGeometry(radius, radius, length, 48, 1);
@@ -285,7 +314,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const gapT = 0.08;
 
     const ringR = radius + plateH * 0.3;
-    const plateGeom = new THREE.BoxGeometry(plateT, plateH, plateW);
+    const plateGeom = makeBeveledPlateGeom(THREE, plateT, plateH, plateW);
 
     const EPS = 0.006;
     const scratchOut = new THREE.Vector3();
