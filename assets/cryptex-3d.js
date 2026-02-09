@@ -418,15 +418,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   patina.repeat.set(3, 1);
 
   // === 2x “gaišāks” cap materiāls (lai reljefs izlec) ===
-  const goldMat = new THREE.MeshStandardMaterial({
-    color: 0xa57c32,          // bija 0x8a6b2d (pacelts gaišums)
-    metalness: 0.82,          // drusku vairāk metāls
-    roughness: 0.48,          // mazāk rough => izteiktāki highlight
-    map: patina,
+    const goldMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,          // svarīgi: ļauj vertexColor joslām dominēt
+    vertexColors: true,       // svarīgi
+    metalness: 0.86,
+    roughness: 0.42,
     bumpMap: ornament,
-    bumpScale: 0.085,         // bija 0.055 => reljefs redzamāks
-    emissive: 0x2a220e,       // neliels “iekšējais” spīdums
-    emissiveIntensity: 0.55,  // “drošais” boost (te būs redzams efekts)
+    bumpScale: 0.095,
+    emissive: 0x2c2514,
+    emissiveIntensity: 0.85,  // drošs “2x gaišāk” efekts
   });
 
   const darkMat = new THREE.MeshStandardMaterial({
@@ -442,7 +442,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   // ✅ IESLĒDZAM banded krāsas uz cap ģeometrijas
   applyCapBandVertexColors(capGeom);
-  goldMat.vertexColors = true;
 
   // ===== CAPs =====
   const capL = new THREE.Mesh(capGeom, goldMat);
@@ -601,12 +600,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const span = Math.max(1e-6, maxZ - minZ);
 
     // 5 joslas (vari mainīt toņus vēlāk)
-    const bandColors = [
-      new THREE.Color(0x1a1410), // tumšāks
-      new THREE.Color(0x3a2b1c), // siltāks
-      new THREE.Color(0x6a4e2a), // gaišāks bronzas
-      new THREE.Color(0x2a2017), // atkal tumšāks
-      new THREE.Color(0x8a6b2d), // tuvāk “gold”
+        const bandColors = [
+      new THREE.Color(0x0f0b08), // ļoti tumšs
+      new THREE.Color(0x5a3f1e), // silts vidējs
+      new THREE.Color(0xe3c57a), // ļoti gaišs “highlight”
+      new THREE.Color(0x8a6b2d), // gold
+      new THREE.Color(0x241a12), // tumšs atkal
     ];
 
     const colors = new Float32Array(count * 3);
