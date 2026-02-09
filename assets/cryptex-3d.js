@@ -426,26 +426,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       bumpScale: 0.055,
     });
 
-    // ============================================================
-    // PĒDĒJIE IETEIKUMI: dažādi tumšie toņi katram gala elementam,
-    // lai reljefs kļūst salasāms (bez gaismu “uzskrūvēšanas”)
-    // ============================================================
-    const darkOuterMat = new THREE.MeshStandardMaterial({
-      color: 0x0b0b0b,
-      metalness: 0.25,
-      roughness: 0.85,
-    });
-
-    const darkMidMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1a1a,
-      metalness: 0.35,
-      roughness: 0.65,
-    });
-
-    const darkInnerMat = new THREE.MeshStandardMaterial({
-      color: 0x262626,
-      metalness: 0.45,
-      roughness: 0.45,
+    const darkMat = new THREE.MeshStandardMaterial({
+      color: 0x050505,
+      metalness: 0.15,
+      roughness: 0.88,
     });
 
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
@@ -454,7 +438,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capGeom.computeVertexNormals();
 
     // ===== CAPs =====
-    // (atstājam kā bija) — goldMat
     const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
@@ -464,10 +447,20 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capR.position.z = rightFace + overlap;
     group.add(capR);
 
-    // ===== apkakle (collar) =====
-    // (nepārmainām ģeometriju/pozīcijas — tikai materiālu)
-    const collarLen = 0.18;
-    const collarR = outerRadius * 1.04;
+    // ============================================================
+    // JAUNĀ KOREKCIJA: izceļ gala “gredzenus” ar dažādiem toņiem
+    // (plānas cilindru joslas kā dekoratīvi riņķi, bez Lathe pārbūves)
+    // ============================================================
+    addCapAccentBands(capL, outerRadius);
+    addCapAccentBands(capR, outerRadius);
+
+    // ============================================================
+    // PĒDĒJĀS KOREKCIJAS (spraugas nosedzējs, stabils uz jebkura zoom)
+    //  - apkakle kļūst nedaudz LIELĀKA un BIEZĀKA
+    //  - pozīcija balstās uz leftFace/rightFace (nevis overlap “čakarēšana”)
+    // ============================================================
+    const collarLen = 0.18;             // biezāka, lai nekad neizlien sprauga
+    const collarR = outerRadius * 1.04; // nedaudz lielāka par cap ārējo rādiusu
 
     const collarGeom = new THREE.CylinderGeometry(
       collarR,
@@ -478,19 +471,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     collarGeom.rotateX(Math.PI / 2);
 
-    const collarL = new THREE.Mesh(collarGeom, darkMidMat);
-    collarL.position.z = leftFace + collarLen / 2 - 0.06;
+    const collarL = new THREE.Mesh(collarGeom, darkMat);
+    collarL.position.z = leftFace + collarLen / 2 - 0.06; // ieiet zem ringa malas
     group.add(collarL);
 
-    const collarRMesh = new THREE.Mesh(collarGeom, darkMidMat);
-    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
+    const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06; // simetriski otrā pusē
     group.add(collarRMesh);
 
     collarL.visible = true;
     collarRMesh.visible = true;
 
-    // ===== iekšējais disks =====
-    // (nepārmainām ģeometriju/pozīcijas — tikai materiālu)
+    // iekšējais “tumšais disks”
     const innerDiskGeom = new THREE.CylinderGeometry(
       outerRadius * 0.62,
       outerRadius * 0.62,
@@ -500,19 +492,16 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
     innerDiskGeom.rotateX(Math.PI / 2);
 
-    const innerL = new THREE.Mesh(innerDiskGeom, darkInnerMat);
+    const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
     innerL.position.z = leftFace - overlap - capLen - 0.02;
     group.add(innerL);
 
-    const innerR = new THREE.Mesh(innerDiskGeom, darkInnerMat);
+    const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
     innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
     innerL.visible = true;
     innerR.visible = true;
-
-    // (ja tev vēl ir kādi “papild-riņķi” galos citur kodā, tiem dotu darkOuterMat)
-    // bet šajā failā tādu nav — šeit ir cap/collar/inner.
 
     // ===== bultas (sprites) =====
     const arrowTex = makeArrowTexture(THREE);
@@ -539,6 +528,51 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     group.add(arrowR);
 
     return { group, arrowL, arrowR, capL, capR };
+
+    // ---- helper: pievieno 4 “toņu riņķus” capam (lokālajā Z) ----
+    function addCapAccentBands(capMesh, outerR) {
+      // plānas joslas ar dažādiem toņiem + mazliet atšķirīgu metal/rough,
+      // lai reljefs “noķer” gaismu
+      const mats = [
+        new THREE.MeshStandardMaterial({
+          color: 0x1a1a1a,
+          metalness: 0.25,
+          roughness: 0.65,
+        }),
+        new THREE.MeshStandardMaterial({
+          color: 0x2a241c,
+          metalness: 0.35,
+          roughness: 0.62,
+        }),
+        new THREE.MeshStandardMaterial({
+          color: 0x101010,
+          metalness: 0.15,
+          roughness: 0.78,
+        }),
+        new THREE.MeshStandardMaterial({
+          color: 0x332814,
+          metalness: 0.28,
+          roughness: 0.70,
+        }),
+      ];
+
+      // Z pozīcijas pa cap garumu (lokālajā cap koordinātē)
+      // (atstāju drošu rezervi, lai netraucē bultiņām un ringiem)
+      const zList = [0.08, 0.18, 0.30, 0.44];
+      const lenList = [0.06, 0.05, 0.055, 0.05];
+
+      // rādiusi – mazliet dažādi, lai “gredzeni” izlec
+      const rList = [outerR * 0.98, outerR * 0.93, outerR * 0.89, outerR * 0.85];
+
+      for (let i = 0; i < zList.length; i++) {
+        const g = new THREE.CylinderGeometry(rList[i], rList[i], lenList[i], 64, 1);
+        g.rotateX(Math.PI / 2); // ass uz Z
+
+        const band = new THREE.Mesh(g, mats[i % mats.length]);
+        band.position.z = zList[i];
+        capMesh.add(band);
+      }
+    }
   }
 
   // ===== stabils Lathe profils (bez “ūsām”) =====
