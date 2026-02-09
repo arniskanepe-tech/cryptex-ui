@@ -432,24 +432,18 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       roughness: 0.88,
     });
 
-    // ======= DEBUG MATERIAL (testam pret “ūsām”) =======
-    // Ja “ūsas” paliek arī ar šo, vaina ir GEOMETRIJĀ (Lathe pts / degenerates).
-    // Ja pazūd, vaina ir MeshStandardMaterial + normals/bumpMap.
-    const debugMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
     // LatheGeometry ass ir Y => pēc tam pagriežam X, lai ass kļūst par Z.
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
     capGeom.rotateX(Math.PI / 2); // Y -> Z
     capGeom.computeVertexNormals();
 
-    // ===== CAPs =====
-    // !!! Te ir vienīgā praktiskā izmaiņa: cap izmanto debugMat (nevis goldMat)
-    const capL = new THREE.Mesh(capGeom, debugMat);
+    // ===== CAPs (atpakaļ uz goldMat) =====
+    const capL = new THREE.Mesh(capGeom, goldMat);
     capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
     group.add(capL);
 
-    const capR = new THREE.Mesh(capGeom, debugMat);
+    const capR = new THREE.Mesh(capGeom, goldMat);
     capR.position.z = rightFace + overlap;
     group.add(capR);
 
@@ -527,19 +521,37 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return { group, arrowL, arrowR, capL, capR };
   }
 
+  // ===== PĒDĒJĀ KOREKCIJA: stabils Lathe profils (bez “ūsām”) =====
   function buildCapLatheGeometry(outerRadius) {
-  const capLen = 0.78;
-  let geom = new THREE.CylinderGeometry(
-    outerRadius * 1.03,
-    outerRadius * 0.50,
-    capLen,
-    48,
-    1
-  );
-  geom = geom.toNonIndexed();
-  geom.computeVertexNormals();
-  return { geom, capLen };
-}
+    const pts = [
+      // pie body sejas – stabils cilindrs
+      new THREE.Vector2(outerRadius * 1.03, 0.00),
+      new THREE.Vector2(outerRadius * 1.03, 0.08),
+
+      // plecs
+      new THREE.Vector2(outerRadius * 0.98, 0.14),
+      new THREE.Vector2(outerRadius * 0.98, 0.22),
+
+      // fiksatora slīpums (ne pārāk ass)
+      new THREE.Vector2(outerRadius * 0.82, 0.34),
+
+      // fiksatora cilindrs
+      new THREE.Vector2(outerRadius * 0.82, 0.48),
+
+      // gala konuss
+      new THREE.Vector2(outerRadius * 0.60, 0.62),
+      new THREE.Vector2(outerRadius * 0.60, 0.78),
+    ];
+
+    const radialSegments = 32;
+
+    let geom = new THREE.LatheGeometry(pts, radialSegments);
+    geom = geom.toNonIndexed();
+    geom.computeVertexNormals();
+
+    const capLen = pts[pts.length - 1].y;
+    return { geom, capLen };
+  }
 
   function makeOrnamentTexture(THREE) {
     const w = 512,
