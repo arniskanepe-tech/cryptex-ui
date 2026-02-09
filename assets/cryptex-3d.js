@@ -465,11 +465,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace + collarLen / 2 - 0.04; // ieiet zem ringa malas
+    collarL.position.z = leftFace + collarLen / 2 - 0.06; // ieiet zem ringa malas
     group.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace - collarLen / 2 + 0.04; // simetriski otrā pusē
+    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06; // simetriski otrā pusē
     group.add(collarRMesh);
 
     collarL.visible = true;
