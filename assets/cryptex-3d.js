@@ -296,14 +296,22 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const a = s * step;
 
       const t = s / (symbols - 1);
-      const baseColor = new THREE.Color().setHSL(0.62, 0.1, 0.26 + 0.1 * t);
-      if (s === 0) baseColor.setHSL(0.1, 0.55, 0.62);
 
-      const mat = new THREE.MeshStandardMaterial({
-        color: baseColor.clone(),
-        roughness: 0.45,
-        metalness: 0.22,
-      });
+    // bronza/zelts gradients (nevis zilgani pelēks)
+    const baseColor = new THREE.Color().setHSL(
+    0.095,                // hue: silti zeltains/bronzas
+    0.35 + 0.10 * t,      // saturation: mazliet dzīvelīgāks uz beigām
+    0.22 + 0.08 * t       // lightness: tumšāks -> gaišāks
+    );
+
+    // izceltais simbols (s === 0) - mazliet gaišāks zeltains
+    if (s === 0) baseColor.setHSL(0.11, 0.55, 0.60);
+
+    const mat = new THREE.MeshStandardMaterial({
+    color: baseColor.clone(),
+    roughness: 0.38,      // “gludāks” (mazāk plastmasas)
+    metalness: 0.35,      // vairāk metālisks
+    });
 
       const p = new THREE.Mesh(plateGeom, mat);
 
