@@ -516,22 +516,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   for (const a of accents) {
-  const torusGeom = new THREE.TorusGeometry(a.r * 0.86, a.tube, 14, 96); // mazāks, lai neizlien pāri
+  const torusGeom = new THREE.TorusGeometry(a.r * 0.86, a.tube, 14, 96);
 
-  // ieliekam "iekšā" cap zonā (nevis ārpusē)
-  const zIn = capLen * 0.35;
+  const zFromCapFace = capLen * 0.22; // <— VIETA uz gala uzgaļa
 
   // Right side
   const mR = makeAccentMat(a.color, a.em, a.ei);
   const ringR = new THREE.Mesh(torusGeom, mR);
-  ringR.position.set(0, 0, rightFace + overlap - zIn);
+  ringR.position.set(0, 0, rightFace + overlap - zFromCapFace);
   ringR.rotation.set(0, 0, 0);
   group.add(ringR);
 
   // Left side
   const mL = makeAccentMat(a.color, a.em, a.ei);
   const ringL = new THREE.Mesh(torusGeom, mL);
-  ringL.position.set(0, 0, leftFace - overlap + zIn);
+  ringL.position.set(0, 0, leftFace - overlap + zFromCapFace);
   ringL.rotation.set(0, 0, 0);
   group.add(ringL);
 }
