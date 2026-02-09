@@ -41,7 +41,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
   // ring / plate dimensijas
-  const RING_COUNT = 4;
+  const RING_COUNT = 5;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
