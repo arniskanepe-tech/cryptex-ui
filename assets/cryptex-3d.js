@@ -502,8 +502,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const head = new THREE.Mesh(headGeom, goldMat);
     // ==== tikai uzgalis (viengabala indikators) ====
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
+    // Bulta ģeometrijā “skatās” pa +X (Shape no 0..headL).
+    // Mums vajag: LEFT -> uz +Z (uz centru), RIGHT -> uz -Z (uz centru).
+    head.rotation.y = side === "left" ? -Math.PI / 2 : Math.PI / 2;
     head.rotation.x = 0; // viegli “nolaiž” uzgali uz leju => mazāk redz augšējo skaldni
     head.position.x = 0;
+    head.position.z = 0;
     g.add(head);
 
     // ---- novietojums uz apkakles ----
@@ -514,22 +518,16 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         ? (faceZ - collarLen / 2 + 0.06)
         : (faceZ + collarLen / 2 - 0.06);
 
+    const baseZ =
+    side === "left"
+    ? (faceZ + collarLen / 2 - 0.06 - startInset)
+    : (faceZ - collarLen / 2 + 0.06 + startInset);
+
     g.position.set(
-      -(collarR + lift),
-      checkRowY,
-      startZ + zDir * (startInset + headL * 0.45)
-      );
-
-    // ✅ lai smailes gals precīzi “tēmē” uz kripteksa centru (skatītājam)
-    const target = new THREE.Vector3(0, checkRowY, 0);
-    g.lookAt(target);
-
-    // jo mūsu uzgalis ir būvēts pa +X, bet lookAt orientē objektu pa -Z,
-    // pieliekam korekciju, lai spicais gals skatās uz target.
-    g.rotateY(Math.PI / 2);
-
-    // 🔽 viegls telpisks “nogāziens” prom no skatītāja (pēc orientācijas)
-    g.rotateX(0);
+    -(collarR + lift),
+    checkRowY,
+    baseZ
+  );
 
     return g;
   }
