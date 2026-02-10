@@ -567,12 +567,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     });
   }
 
-  for (const a of accents) {
+  // “uz apkakles” = turpat, kur ir collarL / collarRMesh
+const zOnCollar = collarLen * 0.05;
+
+for (const a of accents) {
   // diametrs balstīts uz MELNĀS APKAKLES rādiusu (collarR), nevis uz cap a.r
   const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
-
-  // “uz apkakles” = turpat, kur ir collarL / collarRMesh
-  const zOnCollar = collarLen * 0.05;
 
   // Right side (apkakles zonā)
   const mR = makeAccentMat(a.color, a.em, a.ei);
@@ -589,19 +589,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   group.add(ringL);
 }
 
-    // ===== bultas (sprites) =====
+  // ===== bultas (sprites) =====
   const arrowTex = makeArrowTexture(THREE);
   const arrowMat = new THREE.SpriteMaterial({
-    map: arrowTex,
-    transparent: true,
-    opacity: 0.95,
-    depthTest: false,
+  map: arrowTex,
+  transparent: true,
+  opacity: 0.95,
+  depthTest: false,
   });
 
   const ARROW_W = 0.55; // platums
   const ARROW_H = 0.55; // augstums
 
-  // ✅ šī ir TĀ PATI Z formula kā ringL / ringR (uz apkakles/zelta gredzena)
+  // ✅ tā pati Z loģika kā akcenta ringiem (uz zelta gredzena / apkakles zonas)
   const arrowZLeft  = leftFace  + collarLen / 2 - 0.06 - zOnCollar;
   const arrowZRight = rightFace - collarLen / 2 + 0.06 + zOnCollar;
 
@@ -618,7 +618,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   group.add(arrowR);
 
   return { group, arrowL, arrowR, capL, capR };
-}
 
   // ===== stabils Lathe profils (bez “ūsām”) =====
   function buildCapLatheGeometry(outerRadius) {
