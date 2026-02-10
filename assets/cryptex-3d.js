@@ -500,7 +500,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     headGeom.translate(0, 0, -headW / 2);
 
     const head = new THREE.Mesh(headGeom, goldMat);
-    head.rotation.x = Math.PI / 2;
+    head.rotation.y = -Math.PI / 2;
     // ==== tikai uzgalis (viengabala indikators) ====
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
     head.position.x = 0;
