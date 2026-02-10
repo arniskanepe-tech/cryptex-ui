@@ -522,14 +522,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     side: THREE.DoubleSide,
   });
 
-  // lielāka bulta (lai nav “stienītis”)
   const planeW = 1.10;
   const planeH = 0.34;
 
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), mat);
+  // ✅ PIVOT uz “astes” pusi
+  const geom = new THREE.PlaneGeometry(planeW, planeH);
+  if (side === "left") {
+    // aste pie left ringa, bulta iet uz +X (pēc rotācijas tas būs uz centru)
+    geom.translate(+planeW / 2, 0, 0);
+  } else {
+    // aste pie right ringa, bulta iet uz -X
+    geom.translate(-planeW / 2, 0, 0);
+  }
+
+  const mesh = new THREE.Mesh(geom, mat);
   mesh.position.set(x, y, z);
 
-  // ✅ šī rotācija ir pareiza šim setupam (lai bulta ir “uz ekrāna” un garumā pa kripteksu)
+  // (to atstājam kā tev ir)
   mesh.rotation.y = -Math.PI / 2;
 
   mesh.renderOrder = 999;
