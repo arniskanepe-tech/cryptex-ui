@@ -606,13 +606,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const arrowL = new THREE.Sprite(arrowMat.clone());
   arrowL.material.rotation = 0; // ->
   arrowL.scale.set(ARROW_W, ARROW_H, 1);
-  arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
+  arrowL.position.set(-1.05, checkRowY, leftFace - arrowInset);
   group.add(arrowL);
 
   const arrowR = new THREE.Sprite(arrowMat.clone());
   arrowR.material.rotation = Math.PI; // <-
   arrowR.scale.set(ARROW_W, ARROW_H, 1);
-  arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
+  arrowR.position.set(-1.05, checkRowY, rightFace + arrowInset);
   group.add(arrowR);
 
   return { group, arrowL, arrowR, capL, capR };
