@@ -598,18 +598,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     depthTest: false,
   });
 
-  const arrowScale = 0.95;
+  const ARROW_W = 1.35;   // platums
+  const ARROW_H = 0.90;   // augstums
   const arrowInset = 0.06;
 
   const arrowL = new THREE.Sprite(arrowMat.clone());
   arrowL.material.rotation = 0; // ->
-  arrowL.scale.set(arrowScale, arrowScale, 1);
+  arrowL.scale.set(ARROW_W, ARROW_H, 1);
   arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
   group.add(arrowL);
 
   const arrowR = new THREE.Sprite(arrowMat.clone());
   arrowR.material.rotation = Math.PI; // <-
-  arrowR.scale.set(arrowScale, arrowScale, 1);
+  arrowR.scale.set(ARROW_W, ARROW_H, 1);
   arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
   group.add(arrowR);
 
@@ -786,7 +787,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ctx.fillStyle = "rgba(250,240,210,0.95)";
     drawArrow(ctx, 0, 0);
 
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 10;
     ctx.strokeStyle = "rgba(30,25,18,0.55)";
     strokeArrow(ctx);
 
