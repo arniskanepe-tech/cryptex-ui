@@ -598,8 +598,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     depthTest: false,
   });
 
-  const ARROW_W = 1.35;   // platums
-  const ARROW_H = 0.90;   // augstums
+  const ARROW_W = 1.0;   // platums
+  const ARROW_H = 0.55;   // augstums
   const arrowInset = 0.06;
 
   const arrowL = new THREE.Sprite(arrowMat.clone());
