@@ -518,16 +518,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         ? (faceZ - collarLen / 2 + 0.06)
         : (faceZ + collarLen / 2 - 0.06);
 
-    const baseZ =
+    // kur gribam, lai atrodas SMAILĒS GALS (tip)
+    const tipZ =
     side === "left"
     ? (faceZ + collarLen / 2 - 0.06 - startInset)
     : (faceZ - collarLen / 2 + 0.06 + startInset);
+
+    // no tipZ izrēķinam grupas Z, jo uzgalis izstiepjas par headL
+    const baseZ =
+    side === "left"
+    ? (tipZ - headL)   // LEFT: tip = base + headL
+    : (tipZ + headL);  // RIGHT: tip = base - headL
 
     g.position.set(
     -(collarR + lift),
     checkRowY,
     baseZ
-  );
+    );
 
     return g;
   }
