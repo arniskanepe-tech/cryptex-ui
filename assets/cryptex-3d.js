@@ -600,7 +600,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   const ARROW_W = 0.55;   // platums
   const ARROW_H = 0.55;   // augstums
-  const arrowInset = -0.16;
+  const arrowInset = -0.1
+  6;
 
   const arrowL = new THREE.Sprite(arrowMat.clone());
   arrowL.material.rotation = 0; // ->
