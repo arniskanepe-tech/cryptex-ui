@@ -464,7 +464,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       // brīvi regulējami
       startInset = 0.02,
       headL = 0.16,
-      headW = 0.22,
+      headW = 0.028,
       headH = 0.12,
       lift = 0.002,
     } = opts;
@@ -489,8 +489,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const headGeom = new THREE.ExtrudeGeometry(tri, {
       depth: headW,
       bevelEnabled: true,
-      bevelThickness: Math.min(headL, headH) * 0.08,
-      bevelSize: Math.min(headL, headH) * 0.10,
+      bevelThickness: headW * 0.45,
+      bevelSize: headW * 0.45,
       bevelSegments: 1,
       curveSegments: 1,
       steps: 1,
@@ -503,6 +503,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     head.rotation.y = side === "left" ? Math.PI / 2 : -Math.PI / 2;
     // ==== tikai uzgalis (viengabala indikators) ====
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
+    head.rotation.x = -0.18; // viegli “nolaiž” uzgali uz leju => mazāk redz augšējo skaldni
     head.position.x = 0;
     g.add(head);
 
@@ -517,7 +518,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     g.position.set(
       -(collarR + lift),
       checkRowY,
-      startZ + zDir * (startInset + headL * 1.85)
+      startZ + zDir * (startInset + headL * 0.65)
     );
     // 🔽 viegls telpisks “nogāziens” prom no skatītāja
     g.rotation.x = -0.22;
