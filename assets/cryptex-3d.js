@@ -509,33 +509,31 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function createArrowOverlay2D(THREE, opts) {
-    const { side, x, y, z } = opts; // side: "left" | "right"
+  const { side, x, y, z } = opts;
 
-    // LEFT pusei bulta uz centru = "right"
-    // RIGHT pusei bulta uz centru = "left"
-    const tex = makeArrowTexture(THREE, side === "left" ? "right" : "left");
+  const tex = makeArrowTexture(THREE, side === "left" ? "right" : "left");
 
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex,
-      transparent: true,
-      opacity: 0.98,
-      depthTest: false,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    opacity: 0.98,
+    depthTest: false,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
 
-    const planeW = 0.55;
-    const planeH = 0.26;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), mat);
+  // lielāka bulta (lai nav “stienītis”)
+  const planeW = 1.10;
+  const planeH = 0.34;
 
-    mesh.position.set(x, y, z);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), mat);
+  mesh.position.set(x, y, z);
 
-    // fiksēts pagrieziens (nav dinamiskas rotācijas)
-    // Plane default normāle ir +Z; te pagriežam, lai skatās uz kameru šajā setupā.
-    mesh.rotation.y = -Math.PI / 2;
+  // ✅ šī rotācija ir pareiza šim setupam (lai bulta ir “uz ekrāna” un garumā pa kripteksu)
+  mesh.rotation.y = -Math.PI / 2;
 
-    mesh.renderOrder = 999;
-    return mesh;
+  mesh.renderOrder = 999;
+  return mesh;
   }
 
   // ============================================================
@@ -670,7 +668,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // 2D bultas (sākas no zelta riņķa un rāda viena otrai pretī)
     // ============================================================
     const zOnCollar = collarLen * 0.05;
-    const arrowLift = 0.008; // minimāli ārā no virsmas
+    const arrowLift = 0.06; // minimāli ārā no virsmas
 
     const arrowLeft2D = createArrowOverlay2D(THREE, {
       side: "left",
