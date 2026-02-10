@@ -598,7 +598,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     depthTest: false,
   });
 
-  const arrowScale = 0.65;
+  const arrowScale = 0.95;
   const arrowInset = 0.06;
 
   const arrowL = new THREE.Sprite(arrowMat.clone());
