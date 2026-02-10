@@ -517,7 +517,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     g.position.set(
       -(collarR + lift),
       checkRowY,
-      startZ + zDir * (startInset + headL * 0.85)
+      startZ + zDir * (startInset + headL * 1.85)
     );
     
     return g;
