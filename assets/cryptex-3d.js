@@ -589,7 +589,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   group.add(ringL);
 }
 
-  // ===== bultas (sprites) =====
+    // ===== bultas (sprites) =====
   const arrowTex = makeArrowTexture(THREE);
   const arrowMat = new THREE.SpriteMaterial({
     map: arrowTex,
@@ -598,21 +598,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     depthTest: false,
   });
 
-  const ARROW_W = 0.55;   // platums
-  const ARROW_H = 0.55;   // augstums
-  const arrowInset = -0.1
-  6;
+  const ARROW_W = 0.55; // platums
+  const ARROW_H = 0.55; // augstums
+
+  // ✅ šī ir TĀ PATI Z formula kā ringL / ringR (uz apkakles/zelta gredzena)
+  const arrowZLeft  = leftFace  + collarLen / 2 - 0.06 - zOnCollar;
+  const arrowZRight = rightFace - collarLen / 2 + 0.06 + zOnCollar;
 
   const arrowL = new THREE.Sprite(arrowMat.clone());
   arrowL.material.rotation = 0; // ->
   arrowL.scale.set(ARROW_W, ARROW_H, 1);
-  arrowL.position.set(-1.05, checkRowY, leftFace - arrowInset);
+  arrowL.position.set(-1.05, checkRowY, arrowZLeft);
   group.add(arrowL);
 
   const arrowR = new THREE.Sprite(arrowMat.clone());
   arrowR.material.rotation = Math.PI; // <-
   arrowR.scale.set(ARROW_W, ARROW_H, 1);
-  arrowR.position.set(-1.05, checkRowY, rightFace + arrowInset);
+  arrowR.position.set(-1.05, checkRowY, arrowZRight);
   group.add(arrowR);
 
   return { group, arrowL, arrowR, capL, capR };
