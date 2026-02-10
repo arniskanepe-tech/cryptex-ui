@@ -796,29 +796,29 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return tex;
 
     function drawArrow(ctx2, dx, dy) {
-      ctx2.beginPath();
-      ctx2.moveTo(-70 + dx, -40 + dy);
-      ctx2.lineTo(40 + dx, -40 + dy);
-      ctx2.lineTo(40 + dx, -70 + dy);
-      ctx2.lineTo(90 + dx, 0 + dy);
-      ctx2.lineTo(40 + dx, 70 + dy);
-      ctx2.lineTo(40 + dx, 40 + dy);
-      ctx2.lineTo(-70 + dx, 40 + dy);
-      ctx2.closePath();
-      ctx2.fill();
+    ctx2.beginPath();
+    ctx2.moveTo(-70 + dx, -40 + dy);
+    ctx2.lineTo(40 + dx, -40 + dy);
+    ctx2.lineTo(40 + dx, -70 + dy);
+    ctx2.lineTo(90 + dx, 0 + dy);
+    ctx2.lineTo(40 + dx, 70 + dy);
+    ctx2.lineTo(40 + dx, 40 + dy);
+    ctx2.lineTo(-70 + dx, 40 + dy);
+    ctx2.closePath();
+    ctx2.fill();
     }
 
     function strokeArrow(ctx2) {
-      ctx2.beginPath();
-      ctx2.moveTo(-70, -40);
-      ctx2.lineTo(40, -40);
-      ctx2.lineTo(40, -70);
-      ctx2.lineTo(90, 0);
-      ctx2.lineTo(40, 70);
-      ctx2.lineTo(40, 40);
-      ctx2.lineTo(-70, 40);
-      ctx2.closePath();
-      ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.moveTo(-70, -40);
+    ctx2.lineTo(40, -40);
+    ctx2.lineTo(40, -70);
+    ctx2.lineTo(90, 0);
+    ctx2.lineTo(40, 70);
+    ctx2.lineTo(40, 40);
+    ctx2.lineTo(-70, 40);
+    ctx2.closePath();
+    ctx2.stroke();
     }
   }
 })();
