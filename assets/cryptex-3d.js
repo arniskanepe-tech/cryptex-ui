@@ -504,37 +504,30 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
     // Bulta ģeometrijā “skatās” pa +X (Shape no 0..headL).
     // Mums vajag: LEFT -> uz +Z (uz centru), RIGHT -> uz -Z (uz centru).
-    head.rotation.y = side === "left" ? -Math.PI / 2 : Math.PI / 2;
-    head.rotation.x = 0; // viegli “nolaiž” uzgali uz leju => mazāk redz augšējo skaldni
-    head.position.x = 0;
-    head.position.z = 0;
+    // head: atstājam bez y “minēšanas”
+    head.rotation.set(0, 0, 0);
+    head.position.set(0, 0, 0);
     g.add(head);
 
-    // ---- novietojums uz apkakles ----
-    const zDir = side === "right" ? -1 : +1;
-
-    const startZ =
-      side === "right"
-        ? (faceZ - collarLen / 2 + 0.06)
-        : (faceZ + collarLen / 2 - 0.06);
-
-    // kur gribam, lai atrodas SMAILĒS GALS (tip)
-    const tipZ =
-    side === "left"
-    ? (faceZ + collarLen / 2 - 0.06 - startInset)
-    : (faceZ - collarLen / 2 + 0.06 + startInset);
-
-    // no tipZ izrēķinam grupas Z, jo uzgalis izstiepjas par headL
-    const baseZ =
-    side === "left"
-    ? (tipZ - headL)   // LEFT: tip = base + headL
-    : (tipZ + headL);  // RIGHT: tip = base - headL
-
+    // novietojums uz apkakles
     g.position.set(
     -(collarR + lift),
     checkRowY,
     baseZ
-    );
+  );
+
+    // ====== mērķis: kripteksa centrs (PASAULĒ) ======
+    // jo lookAt gaida WORLD koordinātas
+    const centerWorld = new THREE.Vector3(0, checkRowY, 0);
+    cryptex.localToWorld(centerWorld);
+
+    // pagriežam grupu uz centru
+    g.lookAt(centerWorld);
+
+    // ====== ass korekcija ======
+    // lookAt “skatās” pa -Z asi, bet tava bulta (shape 0..headL) ir pa +X
+    // tātad pārceļam +X -> -Z
+    g.rotateY(Math.PI / 2);
 
     return g;
   }
