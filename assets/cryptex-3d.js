@@ -502,7 +502,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const head = new THREE.Mesh(headGeom, goldMat);
     // ==== tikai uzgalis (viengabala indikators) ====
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
-    head.rotation.x = -0.18; // viegli “nolaiž” uzgali uz leju => mazāk redz augšējo skaldni
+    head.rotation.x = 0; // viegli “nolaiž” uzgali uz leju => mazāk redz augšējo skaldni
     head.position.x = 0;
     g.add(head);
 
@@ -529,7 +529,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     g.rotateY(Math.PI / 2);
 
     // 🔽 viegls telpisks “nogāziens” prom no skatītāja (pēc orientācijas)
-    g.rotateX(-0.22);
+    g.rotateX(0);
 
     return g;
   }
