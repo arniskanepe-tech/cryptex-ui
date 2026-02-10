@@ -790,11 +790,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     // ZELTA GRADIENTS
     // ======================
     const gold = ctx.createLinearGradient(0, -90, 0, 90);
-    gold.addColorStop(0.00, "#fff3c4"); // highlight
-    gold.addColorStop(0.25, "#e6c46a");
-    gold.addColorStop(0.55, "#b07a24");
-    gold.addColorStop(0.80, "#f1d27a");
-    gold.addColorStop(1.00, "#6e4a16");
+    gold.addColorStop(0.00, "#e2d3a1"); // vairs nav balts
+    gold.addColorStop(0.25, "#c6a85a");
+    gold.addColorStop(0.55, "#9a6a24"); // galvenais tonis
+    gold.addColorStop(0.80, "#b9964d");
+    gold.addColorStop(1.00, "#5a3c14");
 
     ctx.fillStyle = gold;
     drawArrow(ctx, 0, 0);
