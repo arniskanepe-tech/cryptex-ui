@@ -463,9 +463,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
       // brīvi regulējami
       startInset = 0.02,
-      length = 0.46,
-      shaftW = 0.13,
-      shaftH = 0.10,
       headL = 0.16,
       headW = 0.22,
       headH = 0.12,
@@ -481,11 +478,6 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       emissive: 0x2a1d0a,
       emissiveIntensity: 0.18,
     });
-
-    // ---- korpuss ----
-    const shaftL = Math.max(0.001, length - headL);
-    const shaftGeom = new THREE.BoxGeometry(shaftL, shaftH, shaftW);
-    const shaft = new THREE.Mesh(shaftGeom, goldMat);
 
     // ---- ass uzgalis (trīsstūra prizma) ----
     const tri = new THREE.Shape();
@@ -503,15 +495,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       curveSegments: 1,
       steps: 1,
     });
+
+    // Extrude depth iet +Z, centrējam uz 0
     headGeom.translate(0, 0, -headW / 2);
 
     const head = new THREE.Mesh(headGeom, goldMat);
-
-    // bultas garums iet pa +X (lokāli)
-    shaft.position.x = shaftL / 2;
-    head.position.x = shaftL;
-
-    g.add(shaft);
+    head.rotation.x = Math.PI / 2;
+    // ==== tikai uzgalis (viengabala indikators) ====
+    // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
+    head.position.x = 0;
     g.add(head);
 
     // ---- novietojums uz apkakles ----
@@ -522,10 +514,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         ? (faceZ - collarLen / 2 + 0.06)
         : (faceZ + collarLen / 2 - 0.06);
 
-    g.position.set(-collarR - lift, checkRowY, startZ + zDir * startInset);
+    g.position.set(
+      -(collarR + lift),
+      checkRowY,
+      startZ + zDir * (startInset + headL * 0.45)
+    );
 
     // pagriežam, lai bulta norāda uz centru (pa Z virzienu)
-    g.rotation.y = side === "right" ? Math.PI / 2 : -Math.PI / 2;
+    g.rotation.y = side === "right" ? -Math.PI / 2 : Math.PI / 2;
 
     return g;
   }
@@ -843,57 +839,5 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.needsUpdate = true;
     return tex;
-  }
-
-  function makeArrowTexture(THREE) {
-    const size = 256;
-    const c = document.createElement("canvas");
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext("2d");
-
-    ctx.clearRect(0, 0, size, size);
-    ctx.translate(size / 2, size / 2);
-
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    drawArrow(ctx, 6, 2);
-
-    ctx.fillStyle = "rgba(250,240,210,0.95)";
-    drawArrow(ctx, 0, 0);
-
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "rgba(30,25,18,0.55)";
-    strokeArrow(ctx);
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.needsUpdate = true;
-    return tex;
-
-    function drawArrow(ctx2, dx, dy) {
-      ctx2.beginPath();
-      ctx2.moveTo(-70 + dx, -40 + dy);
-      ctx2.lineTo(40 + dx, -40 + dy);
-      ctx2.lineTo(40 + dx, -70 + dy);
-      ctx2.lineTo(90 + dx, 0 + dy);
-      ctx2.lineTo(40 + dx, 70 + dy);
-      ctx2.lineTo(40 + dx, 40 + dy);
-      ctx2.lineTo(-70 + dx, 40 + dy);
-      ctx2.closePath();
-      ctx2.fill();
-    }
-
-    function strokeArrow(ctx2) {
-      ctx2.beginPath();
-      ctx2.moveTo(-70, -40);
-      ctx2.lineTo(40, -40);
-      ctx2.lineTo(40, -70);
-      ctx2.lineTo(90, 0);
-      ctx2.lineTo(40, 70);
-      ctx2.lineTo(40, 40);
-      ctx2.lineTo(-70, 40);
-      ctx2.closePath();
-      ctx2.stroke();
-    }
   }
 })();
