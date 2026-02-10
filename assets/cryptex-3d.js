@@ -500,7 +500,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     headGeom.translate(0, 0, -headW / 2);
 
     const head = new THREE.Mesh(headGeom, goldMat);
-    head.rotation.y = -Math.PI / 2;
+    head.rotation.y = side === "left" ? -Math.PI / 2 : Math.PI / 2;
     // ==== tikai uzgalis (viengabala indikators) ====
     // Head centrs būs aptuveni pusē no headL, lai viegli pozicionēt.
     head.position.x = 0;
@@ -519,16 +519,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       checkRowY,
       startZ + zDir * (startInset + headL * 0.45)
     );
-
-    // pagriežam, lai bulta norāda uz centru (pa Z virzienu)
-    // mērķis - ekrāna “centrs” (world origin). Ja gribi, varam to pacelt uz checkRowY.
-    const target = new THREE.Vector3(0, checkRowY, 0);
-    g.lookAt(target);
-
-    // jo mūsu uzgalis ir būvēts “pa +X”, bet lookAt orientē objektu pa -Z,
-    // tad pieliekam korekciju, lai spicais gals skatās uz target.
-    g.rotateY(Math.PI / 2);
-
+    
     return g;
   }
   
@@ -671,7 +662,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   group.add(ringL);
 }
 
-   // ===== bultas (3D mehānisks indikators) =====
+     // ===== bultas (3D mehānisks indikators) =====
   const arrowLeft3D = createArrowIndicator3D(THREE, {
     collarR,
     collarLen,
@@ -690,7 +681,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   });
   group.add(arrowRight3D);
 
-    return { group, capL, capR };
+  return { group, capL, capR };
 }
 
   // ===== stabils Lathe profils (bez “ūsām”) =====
