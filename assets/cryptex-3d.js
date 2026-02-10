@@ -511,38 +511,31 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function createArrowOverlay2D(THREE, opts) {
   const { side, x, y, z } = opts;
 
+  // left pusē bulta rāda uz centru (pa labi), right pusē rāda uz centru (pa kreisi)
   const tex = makeArrowTexture(THREE, side === "left" ? "right" : "left");
+  tex.needsUpdate = true;
 
-  const mat = new THREE.MeshBasicMaterial({
+  const mat = new THREE.SpriteMaterial({
     map: tex,
     transparent: true,
     opacity: 0.98,
     depthTest: false,
     depthWrite: false,
-    side: THREE.DoubleSide,
+    sizeAttenuation: false, // ✅ vienāds izmērs ekrānā, neatkarīgi no attāluma
   });
 
-  const planeW = 1.10;
-  const planeH = 0.34;
+  const spr = new THREE.Sprite(mat);
 
-  // ✅ PIVOT uz “astes” pusi
-  const geom = new THREE.PlaneGeometry(planeW, planeH);
-  if (side === "left") {
-    // aste pie left ringa, bulta iet uz +X (pēc rotācijas tas būs uz centru)
-    geom.translate(+planeW / 2, 0, 0);
-  } else {
-    // aste pie right ringa, bulta iet uz -X
-    geom.translate(-planeW / 2, 0, 0);
-  }
+  // ✅ “astes” enkurs pie apkakles:
+  // ja bulta iet pa labi -> aste kreisajā malā; ja pa kreisi -> aste labajā malā
+  spr.center.set(side === "left" ? 0.0 : 1.0, 0.5);
 
-  const mesh = new THREE.Mesh(geom, mat);
-  mesh.position.set(x, y, z);
+  // izmērs uz ekrāna (ja vajag lielāku/mazāku, maini tikai te)
+  spr.scale.set(1.10, 0.34, 1);
 
-  // (to atstājam kā tev ir)
-  mesh.rotation.y = -Math.PI / 2;
-
-  mesh.renderOrder = 999;
-  return mesh;
+  spr.position.set(x, y, z);
+  spr.renderOrder = 999;
+  return spr;
   }
 
   // ============================================================
@@ -679,13 +672,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const zOnCollar = collarLen * 0.05;
     const arrowLift = 0.06; // minimāli ārā no virsmas
 
-    const arrowZ = 0; // abi vienā “plaknē” (kripteksa centrs)
-
     const arrowLeft2D = createArrowOverlay2D(THREE, {
     side: "left",
     x: -(collarR + arrowLift),
     y: checkRowY,
-    z: arrowZ,
+    // ✅ uz kreisās melnās apkakles
+    z: leftFace + collarLen / 2 - 0.06 - zOnCollar,
     });
     group.add(arrowLeft2D);
 
@@ -693,7 +685,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     side: "right",
     x: -(collarR + arrowLift),
     y: checkRowY,
-    z: arrowZ,
+    // ✅ uz labās melnās apkakles
+    z: rightFace - collarLen / 2 + 0.06 + zOnCollar,
     });
     group.add(arrowRight2D);
 
