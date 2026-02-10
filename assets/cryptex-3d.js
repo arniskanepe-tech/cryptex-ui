@@ -679,19 +679,21 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const zOnCollar = collarLen * 0.05;
     const arrowLift = 0.06; // minimāli ārā no virsmas
 
+    const arrowZ = 0; // abi vienā “plaknē” (kripteksa centrs)
+
     const arrowLeft2D = createArrowOverlay2D(THREE, {
-      side: "left",
-      x: -(collarR + arrowLift),
-      y: checkRowY,
-      z: leftFace + collarLen / 2 - 0.06 - zOnCollar,
+    side: "left",
+    x: -(collarR + arrowLift),
+    y: checkRowY,
+    z: arrowZ,
     });
     group.add(arrowLeft2D);
 
     const arrowRight2D = createArrowOverlay2D(THREE, {
-      side: "right",
-      x: -(collarR + arrowLift),
-      y: checkRowY,
-      z: rightFace - collarLen / 2 + 0.06 + zOnCollar,
+    side: "right",
+    x: -(collarR + arrowLift),
+    y: checkRowY,
+    z: arrowZ,
     });
     group.add(arrowRight2D);
 
