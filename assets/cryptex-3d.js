@@ -770,8 +770,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     tex.needsUpdate = true;
     return tex;
   }
-
-  function makeArrowTexture(THREE) {
+    function makeArrowTexture(THREE) {
     const size = 256;
     const c = document.createElement("canvas");
     c.width = size;
@@ -781,14 +780,37 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ctx.clearRect(0, 0, size, size);
     ctx.translate(size / 2, size / 2);
 
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    drawArrow(ctx, 6, 2);
+    // ======================
+    // ĒNA
+    // ======================
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    drawArrow(ctx, 6, 4);
 
-    ctx.fillStyle = "rgba(250,240,210,0.95)";
+    // ======================
+    // ZELTA GRADIENTS
+    // ======================
+    const gold = ctx.createLinearGradient(0, -90, 0, 90);
+    gold.addColorStop(0.00, "#fff3c4"); // highlight
+    gold.addColorStop(0.25, "#e6c46a");
+    gold.addColorStop(0.55, "#b07a24");
+    gold.addColorStop(0.80, "#f1d27a");
+    gold.addColorStop(1.00, "#6e4a16");
+
+    ctx.fillStyle = gold;
     drawArrow(ctx, 0, 0);
 
+    // ======================
+    // TUMŠĀ KONTOŪRA
+    // ======================
     ctx.lineWidth = 10;
-    ctx.strokeStyle = "rgba(30,25,18,0.55)";
+    ctx.strokeStyle = "rgba(45,30,12,0.85)";
+    strokeArrow(ctx);
+
+    // ======================
+    // IEKŠĒJAIS SPĪDUMS
+    // ======================
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
     strokeArrow(ctx);
 
     const tex = new THREE.CanvasTexture(c);
@@ -798,28 +820,29 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
     function drawArrow(ctx2, dx, dy) {
     ctx2.beginPath();
-    ctx2.moveTo(-70 + dx, -40 + dy);
-    ctx2.lineTo(40 + dx, -40 + dy);
-    ctx2.lineTo(40 + dx, -70 + dy);
-    ctx2.lineTo(90 + dx, 0 + dy);
-    ctx2.lineTo(40 + dx, 70 + dy);
-    ctx2.lineTo(40 + dx, 40 + dy);
-    ctx2.lineTo(-70 + dx, 40 + dy);
+    ctx2.moveTo(-80 + dx, -48 + dy);
+    ctx2.lineTo(36 + dx, -48 + dy);
+    ctx2.lineTo(36 + dx, -78 + dy);
+    ctx2.lineTo(96 + dx, 0 + dy);
+    ctx2.lineTo(36 + dx, 78 + dy);
+    ctx2.lineTo(36 + dx, 48 + dy);
+    ctx2.lineTo(-80 + dx, 48 + dy);
     ctx2.closePath();
     ctx2.fill();
     }
 
     function strokeArrow(ctx2) {
     ctx2.beginPath();
-    ctx2.moveTo(-70, -40);
-    ctx2.lineTo(40, -40);
-    ctx2.lineTo(40, -70);
-    ctx2.lineTo(90, 0);
-    ctx2.lineTo(40, 70);
-    ctx2.lineTo(40, 40);
-    ctx2.lineTo(-70, 40);
+    ctx2.moveTo(-80, -48);
+    ctx2.lineTo(36, -48);
+    ctx2.lineTo(36, -78);
+    ctx2.lineTo(96, 0);
+    ctx2.lineTo(36, 78);
+    ctx2.lineTo(36, 48);
+    ctx2.lineTo(-80, 48);
     ctx2.closePath();
     ctx2.stroke();
     }
   }
+  
 })();
