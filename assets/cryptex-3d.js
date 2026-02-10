@@ -771,78 +771,58 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return tex;
   }
     function makeArrowTexture(THREE) {
-    const size = 256;
-    const c = document.createElement("canvas");
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext("2d");
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext("2d");
 
-    ctx.clearRect(0, 0, size, size);
-    ctx.translate(size / 2, size / 2);
+  ctx.clearRect(0, 0, size, size);
+  ctx.translate(size / 2, size / 2);
 
-    // ======================
-    // ĒNA
-    // ======================
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
-    drawArrow(ctx, 6, 4);
+  // Kreisā puse – nedaudz tumšāka
+  ctx.fillStyle = "rgb(80, 63, 30)";
+  drawArrow(ctx, -4, 0);
 
-    // ======================
-    // ZELTA GRADIENTS
-    // ======================
-    const gold = ctx.createLinearGradient(0, -90, 0, 90);
-    gold.addColorStop(0.00, "#e2d3a1"); // vairs nav balts
-    gold.addColorStop(0.25, "#c6a85a");
-    gold.addColorStop(0.55, "#9a6a24"); // galvenais tonis
-    gold.addColorStop(0.80, "#b9964d");
-    gold.addColorStop(1.00, "#5a3c14");
+  // Labā puse – nedaudz gaišāka (gaisma)
+  ctx.fillStyle = "rgb(105, 84, 40)";
+  drawArrow(ctx, 0, 0);
 
-    ctx.fillStyle = gold;
-    drawArrow(ctx, 0, 0);
+  // ĻOTI viegla kontūra (kā gravējums)
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(40,30,15,0.45)";
+  strokeArrow(ctx);
 
-    // ======================
-    // TUMŠĀ KONTOŪRA
-    // ======================
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = "rgba(45,30,12,0.85)";
-    strokeArrow(ctx);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
 
-    // ======================
-    // IEKŠĒJAIS SPĪDUMS
-    // ======================
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(255,255,255,0.28)";
-    strokeArrow(ctx);
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.needsUpdate = true;
-    return tex;
-
-    function drawArrow(ctx2, dx, dy) {
+  function drawArrow(ctx2, dx, dy) {
     ctx2.beginPath();
-    ctx2.moveTo(-80 + dx, -48 + dy);
-    ctx2.lineTo(36 + dx, -48 + dy);
-    ctx2.lineTo(36 + dx, -78 + dy);
-    ctx2.lineTo(96 + dx, 0 + dy);
-    ctx2.lineTo(36 + dx, 78 + dy);
-    ctx2.lineTo(36 + dx, 48 + dy);
-    ctx2.lineTo(-80 + dx, 48 + dy);
+    ctx2.moveTo(-70 + dx, -40 + dy);
+    ctx2.lineTo(40 + dx, -40 + dy);
+    ctx2.lineTo(40 + dx, -70 + dy);
+    ctx2.lineTo(90 + dx, 0 + dy);
+    ctx2.lineTo(40 + dx, 70 + dy);
+    ctx2.lineTo(40 + dx, 40 + dy);
+    ctx2.lineTo(-70 + dx, 40 + dy);
     ctx2.closePath();
     ctx2.fill();
-    }
+  }
 
-    function strokeArrow(ctx2) {
+  function strokeArrow(ctx2) {
     ctx2.beginPath();
-    ctx2.moveTo(-80, -48);
-    ctx2.lineTo(36, -48);
-    ctx2.lineTo(36, -78);
-    ctx2.lineTo(96, 0);
-    ctx2.lineTo(36, 78);
-    ctx2.lineTo(36, 48);
-    ctx2.lineTo(-80, 48);
+    ctx2.moveTo(-70, -40);
+    ctx2.lineTo(40, -40);
+    ctx2.lineTo(40, -70);
+    ctx2.lineTo(90, 0);
+    ctx2.lineTo(40, 70);
+    ctx2.lineTo(40, 40);
+    ctx2.lineTo(-70, 40);
     ctx2.closePath();
     ctx2.stroke();
-    }
   }
+}
   
 })();
