@@ -519,7 +519,9 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       checkRowY,
       startZ + zDir * (startInset + headL * 1.85)
     );
-    
+    // 🔽 viegls telpisks “nogāziens” prom no skatītāja
+    g.rotation.x = -0.22;
+
     return g;
   }
   
