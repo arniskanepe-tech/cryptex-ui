@@ -451,6 +451,86 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
+  //  3D ARROW INDICATOR (mehāniska bulta uz apkakles)
+  // ============================================================
+  function createArrowIndicator3D(THREE, opts) {
+    const {
+      collarR,
+      collarLen,
+      side,          // "left" | "right"
+      checkRowY,
+      faceZ,         // leftFace vai rightFace
+
+      // brīvi regulējami
+      startInset = 0.02,
+      length = 0.46,
+      shaftW = 0.13,
+      shaftH = 0.10,
+      headL = 0.16,
+      headW = 0.22,
+      headH = 0.12,
+      lift = 0.002,
+    } = opts;
+
+    const g = new THREE.Group();
+
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xcaa24a,
+      metalness: 0.85,
+      roughness: 0.32,
+      emissive: 0x2a1d0a,
+      emissiveIntensity: 0.18,
+    });
+
+    // ---- korpuss ----
+    const shaftL = Math.max(0.001, length - headL);
+    const shaftGeom = new THREE.BoxGeometry(shaftL, shaftH, shaftW);
+    const shaft = new THREE.Mesh(shaftGeom, goldMat);
+
+    // ---- ass uzgalis (trīsstūra prizma) ----
+    const tri = new THREE.Shape();
+    tri.moveTo(0, 0);
+    tri.lineTo(headL, headH * 0.5);
+    tri.lineTo(headL, -headH * 0.5);
+    tri.closePath();
+
+    const headGeom = new THREE.ExtrudeGeometry(tri, {
+      depth: headW,
+      bevelEnabled: true,
+      bevelThickness: Math.min(headL, headH) * 0.08,
+      bevelSize: Math.min(headL, headH) * 0.10,
+      bevelSegments: 1,
+      curveSegments: 1,
+      steps: 1,
+    });
+    headGeom.translate(0, 0, -headW / 2);
+
+    const head = new THREE.Mesh(headGeom, goldMat);
+
+    // bultas garums iet pa +X (lokāli)
+    shaft.position.x = shaftL / 2;
+    head.position.x = shaftL;
+
+    g.add(shaft);
+    g.add(head);
+
+    // ---- novietojums uz apkakles ----
+    const zDir = side === "right" ? -1 : +1;
+
+    const startZ =
+      side === "right"
+        ? (faceZ - collarLen / 2 + 0.06)
+        : (faceZ + collarLen / 2 - 0.06);
+
+    g.position.set(-collarR - lift, checkRowY, startZ + zDir * startInset);
+
+    // pagriežam, lai bulta norāda uz centru (pa Z virzienu)
+    g.rotation.y = side === "right" ? Math.PI / 2 : -Math.PI / 2;
+
+    return g;
+  }
+  
+  // ============================================================
   //  END CAPS (LATHE)
   // ============================================================
 
@@ -589,31 +669,26 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   group.add(ringL);
 }
 
-  // ===== bultas (sprites) =====
-  const arrowTex = makeArrowTexture(THREE);
-  const arrowMat = new THREE.SpriteMaterial({
-    map: arrowTex,
-    transparent: true,
-    opacity: 0.95,
-    depthTest: false,
+   // ===== bultas (3D mehānisks indikators) =====
+  const arrowLeft3D = createArrowIndicator3D(THREE, {
+    collarR,
+    collarLen,
+    side: "left",
+    checkRowY,
+    faceZ: leftFace,
   });
+  group.add(arrowLeft3D);
 
-  const arrowScale = 0.65;
-  const arrowInset = 0.06;
+  const arrowRight3D = createArrowIndicator3D(THREE, {
+    collarR,
+    collarLen,
+    side: "right",
+    checkRowY,
+    faceZ: rightFace,
+  });
+  group.add(arrowRight3D);
 
-  const arrowL = new THREE.Sprite(arrowMat.clone());
-  arrowL.material.rotation = 0; // ->
-  arrowL.scale.set(arrowScale, arrowScale, 1);
-  arrowL.position.set(-1.15, checkRowY, leftFace - arrowInset);
-  group.add(arrowL);
-
-  const arrowR = new THREE.Sprite(arrowMat.clone());
-  arrowR.material.rotation = Math.PI; // <-
-  arrowR.scale.set(arrowScale, arrowScale, 1);
-  arrowR.position.set(-1.15, checkRowY, rightFace + arrowInset);
-  group.add(arrowR);
-
-  return { group, arrowL, arrowR, capL, capR };
+    return { group, capL, capR };
 }
 
   // ===== stabils Lathe profils (bez “ūsām”) =====
