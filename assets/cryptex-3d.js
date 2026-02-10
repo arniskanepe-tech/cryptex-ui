@@ -521,7 +521,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     );
 
     // pagriežam, lai bulta norāda uz centru (pa Z virzienu)
-    g.rotation.y = side === "right" ? -Math.PI / 2 : Math.PI / 2;
+    // mērķis - ekrāna “centrs” (world origin). Ja gribi, varam to pacelt uz checkRowY.
+    const target = new THREE.Vector3(0, checkRowY, 0);
+    g.lookAt(target);
+
+    // jo mūsu uzgalis ir būvēts “pa +X”, bet lookAt orientē objektu pa -Z,
+    // tad pieliekam korekciju, lai spicais gals skatās uz target.
+    g.rotateY(Math.PI / 2);
 
     return g;
   }
