@@ -510,6 +510,11 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     g.add(head);
 
     // novietojums uz apkakles
+    const baseZ =
+    side === "left"
+    ? (faceZ + collarLen / 2 - 0.06 - startInset)
+    : (faceZ - collarLen / 2 + 0.06 + startInset);
+
     g.position.set(
     -(collarR + lift),
     checkRowY,
