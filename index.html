@@ -35,6 +35,11 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
+    .btn-check {
+      width: 100px;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+    }
     .btn:active {
       transform: translateY(1px);
       background: rgba(40,46,68,.6);
@@ -50,7 +55,7 @@
     <button class="btn" data-action="up"    aria-label="rotate up">▲</button>
     <button class="btn" data-action="down"  aria-label="rotate down">▼</button>
     <button class="btn" data-action="right" aria-label="next ring">▶︎</button>
-    <button class="btn" data-action="check" aria-label="check code">CHECK</button>
+    <button class="btn btn-check" data-action="check">CHECK</button>
   </div>
 
   <script type="module" src="./assets/cryptex-3d.js"></script>
