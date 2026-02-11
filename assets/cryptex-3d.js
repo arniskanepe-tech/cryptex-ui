@@ -293,42 +293,51 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       }
     }
   }
+// ===== TICK + SHAKE (jauns, jūtamāks) =====
+let _lastTime = performance.now();
 
-  let _lastTime = performance.now();
+// SHAKE stāvoklis
+let shakeTime = 0;
+let shakePhase = 0;
 
-  function tick() {
-    const now = performance.now();
-    const delta = (now - _lastTime) / 1000;
-    _lastTime = now;
+function triggerShake() {
+  shakeTime = 0.45;   // ilgāk
+  shakePhase = 0;
+}
 
-    keepLabelsUpright();
-    updateShake(delta);
+function updateShake(delta) {
+  // (paturi iekšā to pamat-rotāciju, kas tev jau bija)
+  cryptex.rotation.y = Math.PI / 2;
 
-    renderer.render(scene, camera);
-    requestAnimationFrame(tick);
+  if (shakeTime > 0) {
+    shakeTime -= delta;
 
-    }
-    tick();
+    // jūtamāks "drebinājums"
+    shakePhase += delta * 34;          // ātrums
+    const k = 0.085;                   // intensitāte (palielini līdz 0.11 ja vajag)
+
+    cryptex.rotation.x = Math.sin(shakePhase) * k;
+    cryptex.rotation.z = Math.cos(shakePhase * 1.2) * k;
+  } else {
+    cryptex.rotation.x = 0;
+    cryptex.rotation.z = 0;
+  }
+}
+
+function tick() {
+  const now = performance.now();
+  const delta = (now - _lastTime) / 1000;
+  _lastTime = now;
+
+  keepLabelsUpright();
+  updateShake(delta);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+tick();
   
-  // ===== SHAKE EFFECT =====
-  let shakeTime = 0;
-
-  function triggerShake() {
-    shakeTime = 0.35; // sekundes
-  }
-
-  function updateShake(delta) {
-    if (shakeTime > 0) {
-      shakeTime -= delta;
-      const intensity = 0.04;
-      cryptex.rotation.x = Math.sin(performance.now() * 0.05) * intensity;
-      cryptex.rotation.z = Math.cos(performance.now() * 0.05) * intensity;
-    } else {
-      cryptex.rotation.x = 0;
-      cryptex.rotation.z = 0;
-    }
-  }
-
   // ---------- helpers ----------
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
