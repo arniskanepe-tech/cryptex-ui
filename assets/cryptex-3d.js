@@ -202,6 +202,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       showToast("WRONG ✕ " + code);
       // viegla vibrācija telefonā (ja atļauts)
       if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      triggerShake();
     }
   }
 
@@ -293,12 +294,40 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     }
   }
 
+  let _lastTime = performance.now();
+
   function tick() {
+    const now = performance.now();
+    const delta = (now - _lastTime) / 1000;
+    _lastTime = now;
+
     keepLabelsUpright();
+    updateShake(delta);
+
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
+
+    }
+    tick();
+  
+  // ===== SHAKE EFFECT =====
+  let shakeTime = 0;
+
+  function triggerShake() {
+    shakeTime = 0.35; // sekundes
   }
-  tick();
+
+  function updateShake(delta) {
+    if (shakeTime > 0) {
+      shakeTime -= delta;
+      const intensity = 0.04;
+      cryptex.rotation.x = Math.sin(performance.now() * 0.05) * intensity;
+      cryptex.rotation.z = Math.cos(performance.now() * 0.05) * intensity;
+    } else {
+      cryptex.rotation.x = 0;
+      cryptex.rotation.z = 0;
+    }
+  }
 
   // ---------- helpers ----------
   function clamp(v, a, b) {
