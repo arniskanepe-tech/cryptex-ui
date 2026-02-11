@@ -190,9 +190,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     el._t = setTimeout(() => (el.style.opacity = "0"), 900);
   }
 
+  const TARGET_CODE = "44444"; // te vēlāk varēsi nomainīt
+
   function checkCode() {
     const code = getCurrentCode();
-    showToast("CODE: " + code);
+
+    if (code === TARGET_CODE) {
+      showToast("UNLOCKED ✓ " + code);
+      // te nākamajā solī liksim “atveras” animāciju
+    } else {
+      showToast("WRONG ✕ " + code);
+      // viegla vibrācija telefonā (ja atļauts)
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    }
   }
 
   function updateActiveRingVisual() {
