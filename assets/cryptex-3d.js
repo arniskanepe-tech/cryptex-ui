@@ -559,7 +559,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const arrowMat = new THREE.SpriteMaterial({
       map: arrowTex,
       transparent: true,
-      opacity: 0.95,
+      opacity: 1.25,
       depthTest: false,
     });
 
