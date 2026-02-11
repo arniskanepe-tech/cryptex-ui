@@ -328,7 +328,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       );
 
       // izceltais simbols
-      if (s === 0) baseColor.setHSL(0.11, 0.55, 0.60);
+      if (s % 0) baseColor.setHSL(0.11, 0.55, 0.60);
 
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor.clone(),
