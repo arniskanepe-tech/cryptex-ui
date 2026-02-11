@@ -77,7 +77,38 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     gap: RING_GAP,
   });
   rings.forEach((r) => cryptex.add(r));
+  // ====== CODE READ (always matches what's between arrows) ======
+  const _tmpRingW = new THREE.Vector3();
+  const _tmpTarget = new THREE.Vector3();
+  const _tmpPlateW = new THREE.Vector3();
 
+  function getDigitInWindowForRing(ring) {
+  // Paņemam bultas (kreisās) world pozīciju kā “loga” X/Y atskaiti
+    ends.arrowL.getWorldPosition(_tmpTarget);
+
+  // Ring world centrs (lai pielāgotu Z tieši šim ringam)
+    ring.getWorldPosition(_tmpRingW);
+    _tmpTarget.z = _tmpRingW.z;
+
+  // Meklējam tuvāko plāksnīti šim target punktam
+    let bestDigit = 0;
+    let bestDist2 = Infinity;
+
+    for (const p of ring.userData.plates) {
+      p.getWorldPosition(_tmpPlateW);
+      const d2 = _tmpPlateW.distanceToSquared(_tmpTarget);
+      if (d2 < bestDist2) {
+        bestDist2 = d2;
+        bestDigit = p.userData.digit ?? 0;
+      }
+    }
+
+  return bestDigit;
+}
+
+function getCurrentCode() {
+  return rings.map((r) => getDigitInWindowForRing(r)).join("");
+}
   let activeRing = 0;
   updateActiveRingVisual();
 
@@ -372,6 +403,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       });
 
       const p = new THREE.Mesh(plateGeom, mat);
+      p.userData.digit = s;
 
       p.position.x = Math.cos(a) * ringR;
       p.position.y = Math.sin(a) * ringR;
