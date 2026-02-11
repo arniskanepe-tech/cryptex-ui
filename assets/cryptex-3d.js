@@ -87,7 +87,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     if (e.key === "ArrowRight") setActive(activeRing + 1);
     if (e.key === "ArrowUp") rotateActive(+1);
     if (e.key === "ArrowDown") rotateActive(-1);
-  });
+    if (e.key === "Enter" || e.key === " ") checkCode();
+   });
 
   bindScreenButtons();
 
@@ -122,6 +123,40 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     ring.userData.index =
       (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
     ring.rotation.z = ring.userData.index * STEP_ANGLE;
+  }
+
+  function getCurrentCode() {
+    return rings.map((r) => r.userData.index).join("");
+  }
+
+  function showToast(msg) {
+    let el = document.getElementById("toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "toast";
+      el.style.position = "fixed";
+      el.style.left = "50%";
+      el.style.bottom = "140px";
+      el.style.transform = "translateX(-50%)";
+      el.style.padding = "10px 14px";
+      el.style.borderRadius = "10px";
+      el.style.background = "rgba(20,20,20,0.85)";
+      el.style.color = "#fff";
+      el.style.font = "600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      el.style.letterSpacing = "0.08em";
+      el.style.zIndex = "9999";
+      el.style.pointerEvents = "none";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = "1";
+    clearTimeout(el._t);
+    el._t = setTimeout(() => (el.style.opacity = "0"), 900);
+  }
+
+  function checkCode() {
+    const code = getCurrentCode();
+    showToast("CODE: " + code);
   }
 
   function updateActiveRingVisual() {
