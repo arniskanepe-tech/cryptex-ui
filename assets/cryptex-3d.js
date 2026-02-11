@@ -77,38 +77,46 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     gap: RING_GAP,
   });
   rings.forEach((r) => cryptex.add(r));
-  // ====== CODE READ (always matches what's between arrows) ======
-  const _tmpRingW = new THREE.Vector3();
-  const _tmpTarget = new THREE.Vector3();
-  const _tmpPlateW = new THREE.Vector3();
+  
+    // ====== CODE READ (always matches what's between arrows) ======
+  const _aw = new THREE.Vector3();
+  const _local = new THREE.Vector3();
 
   function getDigitInWindowForRing(ring) {
-  // Paņemam bultas (kreisās) world pozīciju kā “loga” X/Y atskaiti
-    ends.arrowL.getWorldPosition(_tmpTarget);
+    // 1) bultas pozīcija pasaulē
+    ends.arrowL.getWorldPosition(_aw);
 
-  // Ring world centrs (lai pielāgotu Z tieši šim ringam)
-    ring.getWorldPosition(_tmpRingW);
-    _tmpTarget.z = _tmpRingW.z;
+    // 2) bultas punkts ring LOCAL koordinātēs
+    _local.copy(_aw);
+    ring.worldToLocal(_local);
 
-  // Meklējam tuvāko plāksnīti šim target punktam
+    // 3) ring XY plaknē - mērķa leņķis
+    const targetAngle = Math.atan2(_local.y, _local.x);
+
+    // 4) atrodam plāksni ar tuvāko leņķi
     let bestDigit = 0;
-    let bestDist2 = Infinity;
+    let bestScore = Infinity;
 
     for (const p of ring.userData.plates) {
-      p.getWorldPosition(_tmpPlateW);
-      const d2 = _tmpPlateW.distanceToSquared(_tmpTarget);
-      if (d2 < bestDist2) {
-        bestDist2 = d2;
+      const a = Math.atan2(p.position.y, p.position.x);
+
+      let d = a - targetAngle;
+      d = Math.atan2(Math.sin(d), Math.cos(d)); // normalize [-PI..PI]
+
+      const score = Math.abs(d);
+      if (score < bestScore) {
+        bestScore = score;
         bestDigit = p.userData.digit ?? 0;
       }
     }
 
-  return bestDigit;
-}
+    return bestDigit;
+  }
 
-function getCurrentCode() {
-  return rings.map((r) => getDigitInWindowForRing(r)).join("");
-}
+  function getCurrentCode() {
+    return rings.map((r) => getDigitInWindowForRing(r)).join("");
+  }
+  
   let activeRing = 0;
   updateActiveRingVisual();
 
@@ -154,10 +162,6 @@ function getCurrentCode() {
     ring.userData.index =
       (ring.userData.index + dir + SYMBOLS_PER_RING) % SYMBOLS_PER_RING;
     ring.rotation.z = ring.userData.index * STEP_ANGLE;
-  }
-
-  function getCurrentCode() {
-    return rings.map((r) => r.userData.index).join("");
   }
 
   function showToast(msg) {
