@@ -147,6 +147,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         if (action === "right") setActive(activeRing + 1);
         if (action === "up") rotateActive(-1);
         if (action === "down") rotateActive(+1);
+        if (action === "check") checkCode();
       },
       { passive: false }
     );
