@@ -124,8 +124,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     if (e.repeat) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
     if (e.key === "ArrowRight") setActive(activeRing + 1);
-    if (e.key === "ArrowUp") rotateActive(+1);
-    if (e.key === "ArrowDown") rotateActive(-1);
+    if (e.key === "ArrowUp") rotateActive(-1);
+    if (e.key === "ArrowDown") rotateActive(+1);
     if (e.key === "Enter" || e.key === " ") checkCode();
    });
 
@@ -145,8 +145,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         const action = btn.dataset.action;
         if (action === "left") setActive(activeRing - 1);
         if (action === "right") setActive(activeRing + 1);
-        if (action === "up") rotateActive(+1);
-        if (action === "down") rotateActive(-1);
+        if (action === "up") rotateActive(-1);
+        if (action === "down") rotateActive(+1);
       },
       { passive: false }
     );
