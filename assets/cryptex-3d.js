@@ -55,7 +55,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.1;
 
   // bultu rinda
-  const CHECK_ROW_Y = 0.85;
+  const CHECK_ROW_Y = 0.68;
 
   // ====== centrs ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
@@ -573,13 +573,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0; // ->
     arrowL.scale.set(ARROW_W, ARROW_H, 1);
-    arrowL.position.set(-1.05, checkRowY, arrowZLeft);
+    arrowL.position.set(-0.92, checkRowY, arrowZLeft);
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
     arrowR.material.rotation = Math.PI; // <-
     arrowR.scale.set(ARROW_W, ARROW_H, 1);
-    arrowR.position.set(-1.05, checkRowY, arrowZRight);
+    arrowR.position.set(-0.92, checkRowY, arrowZRight);
     group.add(arrowR);
 
     return { group, arrowL, arrowR, capL, capR };
