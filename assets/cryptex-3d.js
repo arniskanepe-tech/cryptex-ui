@@ -207,54 +207,82 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     return a + (b - a) * t;
   }
 
-  function startUnlockSpin() {
-    if (isUnlocking) return;
-    isUnlocking = true;
-    unlockT = 0;
+const TAU = Math.PI * 2;
 
-    // katram ringam saglabājam starta rotāciju + individuālu ātrumu/virzienu
-    rings.forEach((ring, i) => {
-      ring.userData._unlockStartRot = ring.rotation.z;
-      ring.userData._unlockTargetRot = ring.userData.index * STEP_ANGLE; // precīzi atpakaļ uz koda
-      ring.userData._unlockDir = i % 2 === 0 ? 1 : -1;
-      ring.userData._unlockMaxVel = 18 + i * 3; // rad/s (ātri sākumā)
-    });
-  }
+function normAngle(a) {
+  a = a % TAU;
+  if (a < 0) a += TAU;
+  return a;
+}
+
+// īsākais delta no "from" uz "to" (-PI..PI)
+function shortestAngleDelta(from, to) {
+  let d = (to - from) % TAU;
+  d = (d + TAU * 1.5) % TAU - TAU * 0.5;
+  return d;
+}
+
+  function startUnlockSpin() {
+  if (isUnlocking) return;
+  isUnlocking = true;
+  unlockT = 0;
+
+  rings.forEach((ring, i) => {
+    ring.userData._unlockDir = i % 2 === 0 ? 1 : -1;
+    ring.userData._unlockMaxVel = 18 + i * 3; // rad/s
+
+    // target leņķis vienmēr normalizēts 0..2PI
+    ring.userData._unlockTargetBase = normAngle(ring.userData.index * STEP_ANGLE);
+
+    // tail laikā vienreiz izrēķināsim "atlocītu" target tuvu current rotācijai
+    ring.userData._unlockTailInited = false;
+    ring.userData._unlockTargetUnwrapped = 0;
+  });
+}
 
   function updateUnlockSpin(delta) {
-    if (!isUnlocking) return;
+  if (!isUnlocking) return;
 
-    unlockT += delta;
-    const t = Math.min(1, unlockT / UNLOCK_SPIN_TIME);
+  unlockT += delta;
+  const t = Math.min(1, unlockT / UNLOCK_SPIN_TIME);
 
-    // 1) pirmā daļa: griežam + bremzējam
-    const speedFactor = 1 - easeOutCubic(t); // no 1 -> 0
+  // 1) griežam + bremzējam
+  const speedFactor = 1 - easeOutCubic(t); // 1 -> 0
+  for (const ring of rings) {
+    const v = ring.userData._unlockMaxVel * speedFactor * ring.userData._unlockDir;
+    ring.rotation.z += v * delta;
+  }
+
+  // 2) tail: piesēdinām uz "atlocīta" target (bez wrap lēciena)
+  const tailStart = 1 - UNLOCK_ALIGN_TAIL / UNLOCK_SPIN_TIME;
+  if (t >= tailStart) {
+    const tt = (t - tailStart) / (1 - tailStart); // 0..1
+    const e = easeOutCubic(Math.min(1, Math.max(0, tt)));
+
     for (const ring of rings) {
-      const v = ring.userData._unlockMaxVel * speedFactor * ring.userData._unlockDir;
-      ring.rotation.z += v * delta;
-    }
+      const base = ring.userData._unlockTargetBase;
 
-    // 2) pēdējā “aste”: piesēdinām precīzi uz STEP leņķa (lai nav “snap”)
-    const tailStart = 1 - UNLOCK_ALIGN_TAIL / UNLOCK_SPIN_TIME;
-    if (t >= tailStart) {
-      const tt = (t - tailStart) / (1 - tailStart); // 0..1
-      const e = easeOutCubic(Math.min(1, Math.max(0, tt)));
-
-      for (const ring of rings) {
-        const target = ring.userData._unlockTargetRot;
-        ring.rotation.z = lerp(ring.rotation.z, target, e);
+      // vienreiz (tail sākumā) izrēķinām targetU tā, lai tas ir "blakus" pašreizējam leņķim
+      if (!ring.userData._unlockTailInited) {
+        const cur = ring.rotation.z;
+        ring.userData._unlockTargetUnwrapped = cur + shortestAngleDelta(cur, base);
+        ring.userData._unlockTailInited = true;
       }
-    }
 
-    // beigas
-    if (t >= 1) {
-      for (const ring of rings) ring.rotation.z = ring.userData._unlockTargetRot;
-      isUnlocking = false;
-
-      showToast("OPENING…"); // nākamajā solī te ies “caps atveras”
-      // startOpenCaps(); // (pievienosim nākamajā solī)
+      const targetU = ring.userData._unlockTargetUnwrapped;
+      ring.rotation.z = lerp(ring.rotation.z, targetU, e);
     }
   }
+
+  // 3) beigas
+  if (t >= 1) {
+    for (const ring of rings) {
+      ring.rotation.z = ring.userData._unlockTargetBase; // tīrs 0..2PI
+    }
+    isUnlocking = false;
+    showToast("OPENING…");
+  }
+}
   function checkCode() {
     const code = getCurrentCode();
 
