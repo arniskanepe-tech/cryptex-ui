@@ -122,6 +122,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
+    if (isUnlocking) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
     if (e.key === "ArrowRight") setActive(activeRing + 1);
     if (e.key === "ArrowUp") rotateActive(-1);
@@ -140,6 +141,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       (e) => {
         const btn = e.target.closest("[data-action]");
         if (!btn) return;
+        if (isUnlocking) return;
         e.preventDefault();
 
         const action = btn.dataset.action;
@@ -191,13 +193,74 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   const TARGET_CODE = "44444"; // te vēlāk varēsi nomainīt
+  // ===== UNLOCK SPIN (3s) =====
+  const UNLOCK_SPIN_TIME = 3.0;      // kopējais spin laiks sekundēs
+  const UNLOCK_ALIGN_TAIL = 0.45;    // pēdējās sekundes, kurās piesēžam pie precīza target
 
+  let isUnlocking = false;
+  let unlockT = 0;
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function startUnlockSpin() {
+    if (isUnlocking) return;
+    isUnlocking = true;
+    unlockT = 0;
+
+    // katram ringam saglabājam starta rotāciju + individuālu ātrumu/virzienu
+    rings.forEach((ring, i) => {
+      ring.userData._unlockStartRot = ring.rotation.z;
+      ring.userData._unlockTargetRot = ring.userData.index * STEP_ANGLE; // precīzi atpakaļ uz koda
+      ring.userData._unlockDir = i % 2 === 0 ? 1 : -1;
+      ring.userData._unlockMaxVel = 18 + i * 3; // rad/s (ātri sākumā)
+    });
+  }
+
+  function updateUnlockSpin(delta) {
+    if (!isUnlocking) return;
+
+    unlockT += delta;
+    const t = Math.min(1, unlockT / UNLOCK_SPIN_TIME);
+
+    // 1) pirmā daļa: griežam + bremzējam
+    const speedFactor = 1 - easeOutCubic(t); // no 1 -> 0
+    for (const ring of rings) {
+      const v = ring.userData._unlockMaxVel * speedFactor * ring.userData._unlockDir;
+      ring.rotation.z += v * delta;
+    }
+
+    // 2) pēdējā “aste”: piesēdinām precīzi uz STEP leņķa (lai nav “snap”)
+    const tailStart = 1 - UNLOCK_ALIGN_TAIL / UNLOCK_SPIN_TIME;
+    if (t >= tailStart) {
+      const tt = (t - tailStart) / (1 - tailStart); // 0..1
+      const e = easeOutCubic(Math.min(1, Math.max(0, tt)));
+
+      for (const ring of rings) {
+        const target = ring.userData._unlockTargetRot;
+        ring.rotation.z = lerp(ring.rotation.z, target, e);
+      }
+    }
+
+    // beigas
+    if (t >= 1) {
+      for (const ring of rings) ring.rotation.z = ring.userData._unlockTargetRot;
+      isUnlocking = false;
+
+      showToast("OPENING…"); // nākamajā solī te ies “caps atveras”
+      // startOpenCaps(); // (pievienosim nākamajā solī)
+    }
+  }
   function checkCode() {
     const code = getCurrentCode();
 
-    if (code === TARGET_CODE) {
+        if (code === TARGET_CODE) {
       showToast("UNLOCKED ✓ " + code);
-      // te nākamajā solī liksim “atveras” animāciju
+      startUnlockSpin();
     } else {
       showToast("WRONG ✕ " + code);
       // viegla vibrācija telefonā (ja atļauts)
@@ -307,7 +370,6 @@ function triggerShake() {
 
 function updateShake(delta) {
   // (paturi iekšā to pamat-rotāciju, kas tev jau bija)
-  cryptex.rotation.y = Math.PI / 2;
 
   if (shakeTime > 0) {
     shakeTime -= delta;
@@ -331,6 +393,7 @@ function tick() {
 
   keepLabelsUpright();
   updateShake(delta);
+  updateUnlockSpin(delta);
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
