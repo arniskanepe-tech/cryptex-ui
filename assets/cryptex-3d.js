@@ -77,23 +77,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     gap: RING_GAP,
   });
   rings.forEach((r) => cryptex.add(r));
-  
-    // ====== CODE READ (always matches what's between arrows) ======
+
+  // ====== CODE READ (always matches what's between arrows) ======
   const _aw = new THREE.Vector3();
   const _local = new THREE.Vector3();
 
   function getDigitInWindowForRing(ring) {
-    // 1) bultas pozīcija pasaulē
     ends.arrowL.getWorldPosition(_aw);
 
-    // 2) bultas punkts ring LOCAL koordinātēs
     _local.copy(_aw);
     ring.worldToLocal(_local);
 
-    // 3) ring XY plaknē - mērķa leņķis
     const targetAngle = Math.atan2(_local.y, _local.x);
 
-    // 4) atrodam plāksni ar tuvāko leņķi
     let bestDigit = 0;
     let bestScore = Infinity;
 
@@ -116,19 +112,19 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   function getCurrentCode() {
     return rings.map((r) => getDigitInWindowForRing(r)).join("");
   }
-  
+
   let activeRing = 0;
   updateActiveRingVisual();
 
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
-    if (isUnlocking) return;
+    if (isUnlocking || isOpening) return;
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
     if (e.key === "ArrowRight") setActive(activeRing + 1);
     if (e.key === "ArrowUp") rotateActive(-1);
     if (e.key === "ArrowDown") rotateActive(+1);
     if (e.key === "Enter" || e.key === " ") checkCode();
-   });
+  });
 
   bindScreenButtons();
 
@@ -193,137 +189,112 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   const TARGET_CODE = "44444"; // te vēlāk varēsi nomainīt
-  // ===== UNLOCK SPIN (3s) =====
 
+  // ===== UNLOCK SPIN =====
   let isUnlocking = false;
-  let unlockT = 0;
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
 
-const TAU = Math.PI * 2;
-
-function normAngle(a) {
-  a = a % TAU;
-  if (a < 0) a += TAU;
-  return a;
-}
-
-// īsākais delta no "from" uz "to" (-PI..PI)
-function shortestAngleDelta(from, to) {
-  let d = (to - from) % TAU;
-  d = (d + TAU * 1.5) % TAU - TAU * 0.5;
-  return d;
-}
+  const TAU = Math.PI * 2;
 
   function startUnlockSpin() {
-  if (isUnlocking || isOpening) return;
-  isUnlocking = true;
+    if (isUnlocking || isOpening) return;
+    isUnlocking = true;
 
-  rings.forEach((ring, i) => {
-    const dir = i % 2 === 0 ? 1 : -1;
+    rings.forEach((ring, i) => {
+      const dir = i % 2 === 0 ? 1 : -1;
 
-    // pilnie apgriezieni (vari pamainīt)
-    const turns = 3 + i; // 3,4,5,6,7
+      const turns = 3 + i; // 3,4,5,6,7
+      const start = ring.rotation.z;
 
-    const start = ring.rotation.z;
+      // tikai pilni apgriezieni -> beigās tieši atpakaļ uz starta (44444 paliek 44444)
+      const total = dir * turns * TAU;
 
-    // TIKAI pilni apgriezieni -> beigās vizuāli atgriežas tieši turpat (44444)
-    const total = dir * turns * TAU;
+      ring.userData._uStart = start;
+      ring.userData._uTotal = total;
 
-    ring.userData._uStart = start;
-    ring.userData._uTotal = total;
-
-    ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
-    ring.userData._uTime = 0;
-  });
-}
+      ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
+      ring.userData._uTime = 0;
+    });
+  }
 
   function updateUnlockSpin(delta) {
-  if (!isUnlocking) return;
+    if (!isUnlocking) return;
 
-  let done = true;
+    let done = true;
 
-  for (const ring of rings) {
-    ring.userData._uTime += delta;
-    const t = Math.min(1, ring.userData._uTime / ring.userData._uDur);
-    const e = easeOutCubic(t);
-
-    ring.rotation.z = ring.userData._uStart + ring.userData._uTotal * e;
-
-    if (t < 1) done = false;
-  }
-
-  if (done) {
-    // nostājamies precīzi atpakaļ uz starta (tas garantē, ka logā ir tas pats 44444)
     for (const ring of rings) {
-      ring.rotation.z = ring.userData._uStart;
+      ring.userData._uTime += delta;
+      const t = Math.min(1, ring.userData._uTime / ring.userData._uDur);
+      const e = easeOutCubic(t);
+
+      ring.rotation.z = ring.userData._uStart + ring.userData._uTotal * e;
+
+      if (t < 1) done = false;
     }
 
-    isUnlocking = false;
-    showToast("OPENING…");
-    startOpenCaps();
+    if (done) {
+      // nofiksējam precīzi atpakaļ uz starta
+      for (const ring of rings) ring.rotation.z = ring.userData._uStart;
+
+      isUnlocking = false;
+      showToast("OPENING…");
+      startOpenCaps();
+    }
   }
-}
-// ===== OPEN CAPS (pēc UNLOCK) =====
-const OPEN_TIME = 1.05;      // cik ilgi veras gali (sek.)
-const OPEN_DIST = 0.78;      // cik tālu atveras (Z vienībās)
 
-let isOpening = false;
-let openT = 0;
+  // ===== OPEN CAPS =====
+  const OPEN_TIME = 1.05;
+  const OPEN_DIST = 0.78;
 
-let _capL0 = 0;
-let _capR0 = 0;
+  let isOpening = false;
+  let openT = 0;
 
-// patīkams “mehānisks” ease ar mazu overshoot (bez jerk)
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
+  let _capL0 = 0;
+  let _capR0 = 0;
 
-function startOpenCaps() {
-  if (isOpening) return;
-  isOpening = true;
-  openT = 0;
-
-  // saglabājam starta pozīcijas
-  _capL0 = ends.capL.position.z;
-  _capR0 = ends.capR.position.z;
-}
-
-function updateOpenCaps(delta) {
-  if (!isOpening) return;
-
-  openT += delta;
-  const t = Math.min(1, openT / OPEN_TIME);
-  const e = easeOutBack(t);
-
-  // capL uz kreiso pusi (negatīvs Z), capR uz labo (pozitīvs Z)
-  ends.capL.position.z = _capL0 - OPEN_DIST * e;
-  ends.capR.position.z = _capR0 + OPEN_DIST * e;
-
-  if (t >= 1) {
-    // nofiksējam precīzi
-    ends.capL.position.z = _capL0 - OPEN_DIST;
-    ends.capR.position.z = _capR0 + OPEN_DIST;
-    isOpening = false;
+  function easeOutBack(t) {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
   }
-}
+
+  function startOpenCaps() {
+    if (isOpening) return;
+    isOpening = true;
+    openT = 0;
+
+    _capL0 = ends.capL.position.z;
+    _capR0 = ends.capR.position.z;
+  }
+
+  function updateOpenCaps(delta) {
+    if (!isOpening) return;
+
+    openT += delta;
+    const t = Math.min(1, openT / OPEN_TIME);
+    const e = easeOutBack(t);
+
+    ends.capL.position.z = _capL0 - OPEN_DIST * e;
+    ends.capR.position.z = _capR0 + OPEN_DIST * e;
+
+    if (t >= 1) {
+      ends.capL.position.z = _capL0 - OPEN_DIST;
+      ends.capR.position.z = _capR0 + OPEN_DIST;
+      isOpening = false;
+    }
+  }
 
   function checkCode() {
     const code = getCurrentCode();
 
-        if (code === TARGET_CODE) {
+    if (code === TARGET_CODE) {
       showToast("UNLOCKED ✓ " + code);
       startUnlockSpin();
     } else {
       showToast("WRONG ✕ " + code);
-      // viegla vibrācija telefonā (ja atļauts)
       if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
       triggerShake();
     }
@@ -416,52 +387,48 @@ function updateOpenCaps(delta) {
       }
     }
   }
-// ===== TICK + SHAKE (jauns, jūtamāks) =====
-let _lastTime = performance.now();
 
-// SHAKE stāvoklis
-let shakeTime = 0;
-let shakePhase = 0;
+  // ===== TICK + SHAKE =====
+  let _lastTime = performance.now();
 
-function triggerShake() {
-  shakeTime = 0.45;   // ilgāk
-  shakePhase = 0;
-}
+  let shakeTime = 0;
+  let shakePhase = 0;
 
-function updateShake(delta) {
-  // (paturi iekšā to pamat-rotāciju, kas tev jau bija)
-
-  if (shakeTime > 0) {
-    shakeTime -= delta;
-
-    // jūtamāks "drebinājums"
-    shakePhase += delta * 34;          // ātrums
-    const k = 0.085;                   // intensitāte (palielini līdz 0.11 ja vajag)
-
-    cryptex.rotation.x = Math.sin(shakePhase) * k;
-    cryptex.rotation.z = Math.cos(shakePhase * 1.2) * k;
-  } else {
-    cryptex.rotation.x = 0;
-    cryptex.rotation.z = 0;
+  function triggerShake() {
+    shakeTime = 0.45;
+    shakePhase = 0;
   }
-}
 
-function tick() {
-  const now = performance.now();
-  const delta = (now - _lastTime) / 1000;
-  _lastTime = now;
+  function updateShake(delta) {
+    if (shakeTime > 0) {
+      shakeTime -= delta;
+      shakePhase += delta * 34;
+      const k = 0.085;
 
-  keepLabelsUpright();
-  updateShake(delta);
-  updateUnlockSpin(delta);
-  updateOpenCaps(delta);
+      cryptex.rotation.x = Math.sin(shakePhase) * k;
+      cryptex.rotation.z = Math.cos(shakePhase * 1.2) * k;
+    } else {
+      cryptex.rotation.x = 0;
+      cryptex.rotation.z = 0;
+    }
+  }
 
-  renderer.render(scene, camera);
-  requestAnimationFrame(tick);
-}
+  function tick() {
+    const now = performance.now();
+    const delta = (now - _lastTime) / 1000;
+    _lastTime = now;
 
-tick();
-  
+    keepLabelsUpright();
+    updateShake(delta);
+    updateUnlockSpin(delta);
+    updateOpenCaps(delta);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+
   // ---------- helpers ----------
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
@@ -563,14 +530,12 @@ tick();
       const a = s * step;
       const t = s / (symbols - 1);
 
-      // bronza/zelts gradients
       const baseColor = new THREE.Color().setHSL(
         0.095,
         0.35 + 0.10 * t,
         0.22 + 0.08 * t
       );
 
-      // izceltais simbols
       if (s % 2 === 0) baseColor.setHSL(0.11, 0.55, 0.60);
 
       const mat = new THREE.MeshStandardMaterial({
@@ -662,15 +627,12 @@ tick();
     const x = size / 2;
     const y = size / 2 + 4;
 
-    // 1) tumšā apakšējā ēna (iegravējums)
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillText(text, x + 3, y + 4);
 
-    // 2) gaišā augšējā mala
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.fillText(text, x - 1, y - 1);
 
-    // 3) pats cipars
     ctx.fillStyle = "rgba(20,15,8,0.95)";
     ctx.fillText(text, x, y);
 
@@ -684,7 +646,7 @@ tick();
   }
 
   // ============================================================
-  //  END CAPS (LATHE) — FIKSĒTA, KOREKTAS IEKAVAS + RETURN
+  //  END CAPS — CAP GROUPS + DOUBLE SIDE (iekšpuse redzama)
   // ============================================================
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
@@ -697,7 +659,6 @@ tick();
     ornament.wrapS = ornament.wrapT = THREE.RepeatWrapping;
     ornament.repeat.set(6, 1);
 
-    // cap mats
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       vertexColors: true,
@@ -707,6 +668,7 @@ tick();
       bumpScale: 0.095,
       emissive: 0x2c2514,
       emissiveIntensity: 0.85,
+      side: THREE.DoubleSide, // <<< galvenais “iekšpuses” fix
     });
 
     const darkMat = new THREE.MeshStandardMaterial({
@@ -715,23 +677,27 @@ tick();
       roughness: 0.88,
     });
 
-    // cap geometry
     const { geom: capGeom, capLen } = buildCapLatheGeometry(outerRadius);
     capGeom.rotateX(Math.PI / 2);
     capGeom.computeVertexNormals();
     applyCapBandVertexColors(capGeom);
 
-    // caps
-    const capL = new THREE.Mesh(capGeom, goldMat);
-    capL.position.z = leftFace - overlap;
-    capL.rotation.y = Math.PI;
-    group.add(capL);
+    // cap grupas (kustas kopā ar collar/akcentiem)
+    const capL = new THREE.Group();
+    const capR = new THREE.Group();
+    group.add(capL, capR);
 
-    const capR = new THREE.Mesh(capGeom, goldMat);
-    capR.position.z = rightFace + overlap;
-    group.add(capR);
+    // cap mesh
+    const capLMesh = new THREE.Mesh(capGeom, goldMat);
+    capLMesh.position.z = leftFace - overlap;
+    capLMesh.rotation.y = Math.PI;
+    capL.add(capLMesh);
 
-    // collar (melnais)
+    const capRMesh = new THREE.Mesh(capGeom, goldMat);
+    capRMesh.position.z = rightFace + overlap;
+    capR.add(capRMesh);
+
+    // collar (melnais) — pie capiem
     const collarLen = 0.18;
     const collarR = outerRadius * 1.04;
 
@@ -740,13 +706,46 @@ tick();
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
     collarL.position.z = leftFace + collarLen / 2 - 0.06;
-    group.add(collarL);
+    capL.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
     collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
-    group.add(collarRMesh);
+    capR.add(collarRMesh);
 
-    // inner disks
+    // accents — arī pie capiem
+    const accents = [
+      { tube: 0.030, color: 0xd1b36a, em: 0x3a2a12, ei: 0.65 },
+      { tube: 0.024, color: 0x8f6e2a, em: 0x241a0b, ei: 0.55 },
+      { tube: 0.020, color: 0x3b2b14, em: 0x120c06, ei: 0.45 },
+    ];
+
+    function makeAccentMat(hex, emissiveHex, emissiveIntensity) {
+      return new THREE.MeshStandardMaterial({
+        color: hex,
+        metalness: 0.75,
+        roughness: 0.35,
+        emissive: emissiveHex,
+        emissiveIntensity,
+      });
+    }
+
+    const zOnCollar = collarLen * 0.05;
+
+    for (const a of accents) {
+      const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
+
+      const mR = makeAccentMat(a.color, a.em, a.ei);
+      const ringR = new THREE.Mesh(torusGeom, mR);
+      ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
+      capR.add(ringR);
+
+      const mL = makeAccentMat(a.color, a.em, a.ei);
+      const ringL = new THREE.Mesh(torusGeom, mL);
+      ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
+      capL.add(ringL);
+    }
+
+    // inner disks (paliek uz ķermeņa)
     const innerDiskGeom = new THREE.CylinderGeometry(
       outerRadius * 0.62,
       outerRadius * 0.62,
@@ -764,41 +763,7 @@ tick();
     innerR.position.z = rightFace + overlap + capLen + 0.02;
     group.add(innerR);
 
-    // accents
-    const accents = [
-      { tube: 0.030, color: 0xd1b36a, em: 0x3a2a12, ei: 0.65 },
-      { tube: 0.024, color: 0x8f6e2a, em: 0x241a0b, ei: 0.55 },
-      { tube: 0.020, color: 0x3b2b14, em: 0x120c06, ei: 0.45 },
-    ];
-
-    function makeAccentMat(hex, emissiveHex, emissiveIntensity) {
-      return new THREE.MeshStandardMaterial({
-        color: hex,
-        metalness: 0.75,
-        roughness: 0.35,
-        emissive: emissiveHex,
-        emissiveIntensity,
-      });
-    }
-
-    // “uz apkakles” = turpat, kur ir collarL / collarRMesh
-    const zOnCollar = collarLen * 0.05;
-
-    for (const a of accents) {
-      const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
-
-      const mR = makeAccentMat(a.color, a.em, a.ei);
-      const ringR = new THREE.Mesh(torusGeom, mR);
-      ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
-      group.add(ringR);
-
-      const mL = makeAccentMat(a.color, a.em, a.ei);
-      const ringL = new THREE.Mesh(torusGeom, mL);
-      ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
-      group.add(ringL);
-    }
-
-    // ===== bultas (sprites) =====
+    // bultas
     const arrowTex = makeArrowTexture(THREE);
     const arrowMat = new THREE.SpriteMaterial({
       map: arrowTex,
@@ -810,18 +775,17 @@ tick();
     const ARROW_W = 0.55;
     const ARROW_H = 0.55;
 
-    // tā pati Z loģika kā akcenta ringiem
     const arrowZLeft = leftFace + collarLen / 2 - 0.06 - zOnCollar;
     const arrowZRight = rightFace - collarLen / 2 + 0.06 + zOnCollar;
 
     const arrowL = new THREE.Sprite(arrowMat.clone());
-    arrowL.material.rotation = 0; // ->
+    arrowL.material.rotation = 0;
     arrowL.scale.set(ARROW_W, ARROW_H, 1);
     arrowL.position.set(-0.92, checkRowY, arrowZLeft);
     group.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
-    arrowR.material.rotation = Math.PI; // <-
+    arrowR.material.rotation = Math.PI;
     arrowR.scale.set(ARROW_W, ARROW_H, 1);
     arrowR.position.set(-0.92, checkRowY, arrowZRight);
     group.add(arrowR);
@@ -829,7 +793,6 @@ tick();
     return { group, arrowL, arrowR, capL, capR };
   }
 
-  // ===== stabils Lathe profils =====
   function buildCapLatheGeometry(outerRadius) {
     const pts = [
       new THREE.Vector2(outerRadius * 1.03, 0.0),
@@ -946,50 +909,6 @@ tick();
     return tex;
   }
 
-  // (paliek, ja vēlāk vajag)
-  function makePatinaTexture(THREE) {
-    const w = 512,
-      h = 256;
-    const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext("2d");
-
-    ctx.fillStyle = "#8A6B2D";
-    ctx.fillRect(0, 0, w, h);
-
-    for (let i = 0; i < 220; i++) {
-      const x = Math.random() * w;
-      const y = Math.random() * h;
-      const r = 6 + Math.random() * 28;
-      ctx.fillStyle = `rgba(55,45,20,${0.06 + Math.random() * 0.10})`;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    for (let i = 0; i < 140; i++) {
-      const x = Math.random() * w;
-      const y = Math.random() * h;
-      const r = 8 + Math.random() * 34;
-      ctx.fillStyle = `rgba(44,120,92,${0.05 + Math.random() * 0.12})`;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = "#ffffff";
-    for (let x = 0; x < w; x += 18) ctx.fillRect(x, 0, 2, h);
-    ctx.globalAlpha = 1;
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.needsUpdate = true;
-    return tex;
-  }
-
-  // Bulta: bez “gradienta” — vienkārši kreisā puse tumšāka, labā gaišāka
   function makeArrowTexture(THREE) {
     const size = 256;
     const c = document.createElement("canvas");
@@ -1000,15 +919,12 @@ tick();
     ctx.clearRect(0, 0, size, size);
     ctx.translate(size / 2, size / 2);
 
-    // Kreisā puse — mazāk gaismas (nedaudz tumšāka)
     ctx.fillStyle = "rgb(80, 63, 30)";
     drawArrow(ctx, -4, 0);
 
-    // Labā puse — vairāk gaismas (nedaudz gaišāka)
     ctx.fillStyle = "rgb(105, 84, 40)";
     drawArrow(ctx, 0, 0);
 
-    // ļoti viegla kontūra
     ctx.lineWidth = 4;
     ctx.strokeStyle = "rgba(40,30,15,0.45)";
     strokeArrow(ctx);
