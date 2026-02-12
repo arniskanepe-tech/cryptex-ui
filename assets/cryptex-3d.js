@@ -259,13 +259,14 @@ function shortestAngleDelta(from, to) {
   }
 
   if (done) {
-  // nostājamies precīzi atpakaļ uz starta (tas garantē, ka logā ir tas pats 44444)
-  for (const ring of rings) {
-    ring.rotation.z = ring.userData._uStart;
-  }
+    // nostājamies precīzi atpakaļ uz starta (tas garantē, ka logā ir tas pats 44444)
+    for (const ring of rings) {
+      ring.rotation.z = ring.userData._uStart;
+    }
 
-  isUnlocking = false;
-  showToast("OPENING…");
+    isUnlocking = false;
+    showToast("OPENING…");
+  }
 }
 
   function checkCode() {
