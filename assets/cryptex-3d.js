@@ -227,29 +227,17 @@ function shortestAngleDelta(from, to) {
   rings.forEach((ring, i) => {
     const dir = i % 2 === 0 ? 1 : -1;
 
-    // cik pilnus apļus izgriež (vari pamainīt)
+    // pilnie apgriezieni (vari pamainīt)
     const turns = 3 + i; // 3,4,5,6,7
 
-    // uz kura cipara jābeidz (tagad: atpakaļ uz esošo ring.userData.index)
-    const targetDigit = 4;
-
     const start = ring.rotation.z;
-    const startN = normAngle(start);
-    const targetN = normAngle(targetDigit * STEP_ANGLE);
 
-    // delta (-PI..PI)
-    let delta = shortestAngleDelta(startN, targetN);
-
-    // piespiežam delta iet tikai dir virzienā (lai nav “pēdējais pārlēciens”)
-    if (dir === 1 && delta < 0) delta += TAU;
-    if (dir === -1 && delta > 0) delta -= TAU;
-
-    const total = dir * turns * TAU + delta;
+    // TIKAI pilni apgriezieni -> beigās vizuāli atgriežas tieši turpat (44444)
+    const total = dir * turns * TAU;
 
     ring.userData._uStart = start;
     ring.userData._uTotal = total;
 
-    // katram ringam savs ilgums (lai izskatās dzīvi)
     ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
     ring.userData._uTime = 0;
   });
@@ -271,10 +259,15 @@ function shortestAngleDelta(from, to) {
   }
 
   if (done) {
-    isUnlocking = false;
-    showToast("OPENING…");
+  // nostājamies precīzi atpakaļ uz starta (tas garantē, ka logā ir tas pats 44444)
+  for (const ring of rings) {
+    ring.rotation.z = ring.userData._uStart;
   }
+
+  isUnlocking = false;
+  showToast("OPENING…");
 }
+
   function checkCode() {
     const code = getCurrentCode();
 
