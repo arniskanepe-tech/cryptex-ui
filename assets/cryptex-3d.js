@@ -141,7 +141,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       (e) => {
         const btn = e.target.closest("[data-action]");
         if (!btn) return;
-        if (isUnlocking) return;
+        if (isUnlocking || isOpening) return;
         e.preventDefault();
 
         const action = btn.dataset.action;
@@ -221,7 +221,7 @@ function shortestAngleDelta(from, to) {
 }
 
   function startUnlockSpin() {
-  if (isUnlocking) return;
+  if (isUnlocking || isOpening) return;
   isUnlocking = true;
 
   rings.forEach((ring, i) => {
@@ -266,6 +266,52 @@ function shortestAngleDelta(from, to) {
 
     isUnlocking = false;
     showToast("OPENING…");
+    startOpenCaps();
+  }
+}
+// ===== OPEN CAPS (pēc UNLOCK) =====
+const OPEN_TIME = 1.05;      // cik ilgi veras gali (sek.)
+const OPEN_DIST = 0.78;      // cik tālu atveras (Z vienībās)
+
+let isOpening = false;
+let openT = 0;
+
+let _capL0 = 0;
+let _capR0 = 0;
+
+// patīkams “mehānisks” ease ar mazu overshoot (bez jerk)
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function startOpenCaps() {
+  if (isOpening) return;
+  isOpening = true;
+  openT = 0;
+
+  // saglabājam starta pozīcijas
+  _capL0 = ends.capL.position.z;
+  _capR0 = ends.capR.position.z;
+}
+
+function updateOpenCaps(delta) {
+  if (!isOpening) return;
+
+  openT += delta;
+  const t = Math.min(1, openT / OPEN_TIME);
+  const e = easeOutBack(t);
+
+  // capL uz kreiso pusi (negatīvs Z), capR uz labo (pozitīvs Z)
+  ends.capL.position.z = _capL0 - OPEN_DIST * e;
+  ends.capR.position.z = _capR0 + OPEN_DIST * e;
+
+  if (t >= 1) {
+    // nofiksējam precīzi
+    ends.capL.position.z = _capL0 - OPEN_DIST;
+    ends.capR.position.z = _capR0 + OPEN_DIST;
+    isOpening = false;
   }
 }
 
@@ -408,6 +454,7 @@ function tick() {
   keepLabelsUpright();
   updateShake(delta);
   updateUnlockSpin(delta);
+  updateOpenCaps(delta);
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
