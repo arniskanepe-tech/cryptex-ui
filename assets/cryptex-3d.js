@@ -201,33 +201,36 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const TARGET_CODE = "44444";
 
   // ===== UNLOCK SPIN =====
-  let isUnlocking = false;
+let isUnlocking = false;
 
-  function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
 
-  const TAU = Math.PI * 2;
+const TAU = Math.PI * 2;
+let _unlockCode = "";
 
-  function startUnlockSpin() {
-    if (isUnlocking || isOpening || isWrongRolling || isSolved) return;
-    isUnlocking = true;
+function startUnlockSpin(code) {
+  if (isUnlocking || isOpening || isWrongRolling || isSolved) return;
 
-    rings.forEach((ring, i) => {
-      const dir = i % 2 === 0 ? 1 : -1;
+  _unlockCode = code;
+  isUnlocking = true;
 
-      // pilnie apgriezieni
-      const turns = 3 + i; // 3,4,5,6,7
+  rings.forEach((ring, i) => {
+    const dir = i % 2 === 0 ? 1 : -1;
 
-      const start = ring.rotation.z;
-      const total = dir * turns * TAU; // tikai pilni apļi -> atgriežas tajā pašā kodā
+    // pilnie apgriezieni
+    const turns = 3 + i; // 3,4,5,6,7
 
-      ring.userData._uStart = start;
-      ring.userData._uTotal = total;
-      ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
-      ring.userData._uTime = 0;
-    });
-  }
+    const start = ring.rotation.z;
+    const total = dir * turns * TAU; // tikai pilni apļi -> atgriežas tajā pašā kodā
+
+    ring.userData._uStart = start;
+    ring.userData._uTotal = total;
+    ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
+    ring.userData._uTime = 0;
+  });
+}
 
   function updateUnlockSpin(delta) {
     if (!isUnlocking) return;
@@ -249,10 +252,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       for (const ring of rings) ring.rotation.z = ring.userData._uStart;
 
       isUnlocking = false;
-      showToast("OPENING…");
-      startOpenCaps();
+
+      // 1) vispirms pasakam, ka tiešām atslēdzās
+      showToast("UNLOCKED ✓ " + _unlockCode);
+
+      // 2) pēc mazas pauzes sākam atvēršanu
+      setTimeout(() => {
+        showToast("OPENING…");
+        startOpenCaps();
+        }, 350);
+      }
     }
-  }
 
   // ===== WRONG ROLL (pie nepareiza koda) =====
   let isWrongRolling = false;
@@ -355,12 +365,10 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const code = getCurrentCode();
 
     if (code === TARGET_CODE) {
-      showToast("UNLOCKED ✓ " + code);
-      startUnlockSpin();
+      showToast("CHECKING… " + code);
+      startUnlockSpin(code);
     } else {
-      // ✅ roll arī pie nepareiza koda -> pēc tam atgriežas uz to pašu kodu + shake
       startWrongRoll(code);
-    }
   }
 
   function updateActiveRingVisual() {
