@@ -233,61 +233,139 @@ function startUnlockSpin(code) {
 }
 
   function updateUnlockSpin(delta) {
-    if (!isUnlocking) return;
+  if (!isUnlocking) return;
 
-    let done = true;
+  let done = true;
 
-    for (const ring of rings) {
-      ring.userData._uTime += delta;
-      const t = Math.min(1, ring.userData._uTime / ring.userData._uDur);
-      const e = easeOutCubic(t);
+  for (const ring of rings) {
+    ring.userData._uTime += delta;
+    const t = Math.min(1, ring.userData._uTime / ring.userData._uDur);
+    const e = easeOutCubic(t);
 
-      ring.rotation.z = ring.userData._uStart + ring.userData._uTotal * e;
+    ring.rotation.z = ring.userData._uStart + ring.userData._uTotal * e;
 
-      if (t < 1) done = false;
-    }
-
-    if (done) {
-      // snap precīzi atpakaļ uz startu (kods nemainās)
-      for (const ring of rings) ring.rotation.z = ring.userData._uStart;
-
-      isUnlocking = false;
-
-      // 1) vispirms pasakam, ka tiešām atslēdzās
-      showToast("UNLOCKED ✓ " + _unlockCode);
-
-      // 2) pēc mazas pauzes sākam atvēršanu
-      setTimeout(() => {
-        showToast("OPENING…");
-        startOpenCaps();
-        }, 350);
-      }
-    }
-
-  // ===== WRONG ROLL (pie nepareiza koda) =====
-  let isWrongRolling = false;
-  let _wrongCode = "";
-
-  function startWrongRoll(code) {
-    if (isUnlocking || isOpening || isWrongRolling || isSolved) return;
-    isWrongRolling = true;
-    _wrongCode = code;
-
-    rings.forEach((ring, i) => {
-      const dir = i % 2 === 0 ? 1 : -1;
-      const turns = 1.6 + i * 0.12; // ~1.6..2.1
-      const start = ring.rotation.z;
-      const total = dir * turns * TAU;
-
-      ring.userData._wStart = start;
-      ring.userData._wTotal = total;
-      ring.userData._wDur = 0.80 + i * 0.05; // 0.80..1.00
-      ring.userData._wTime = 0;
-    });
-
-    showToast("CHECKING… " + code);
+    if (t < 1) done = false;
   }
 
+  if (done) {
+    for (const ring of rings) ring.rotation.z = ring.userData._uStart;
+
+    isUnlocking = false;
+
+    showToast("UNLOCKED ✓ " + _unlockCode);
+
+    setTimeout(() => {
+      showToast("OPENING…");
+      startOpenCaps();
+    }, 350);
+  }
+}
+
+// ===== WRONG ROLL (pie nepareiza koda) =====
+let isWrongRolling = false;
+let _wrongCode = "";
+
+function startWrongRoll(code) {
+  if (isUnlocking || isOpening || isWrongRolling || isSolved) return;
+  isWrongRolling = true;
+  _wrongCode = code;
+
+  rings.forEach((ring, i) => {
+    const dir = i % 2 === 0 ? 1 : -1;
+    const turns = 1.6 + i * 0.12;
+    const start = ring.rotation.z;
+    const total = dir * turns * TAU;
+
+    ring.userData._wStart = start;
+    ring.userData._wTotal = total;
+    ring.userData._wDur = 0.80 + i * 0.05;
+    ring.userData._wTime = 0;
+  });
+
+  showToast("CHECKING… " + code);
+}
+
+function updateWrongRoll(delta) {
+  if (!isWrongRolling) return;
+
+  let done = true;
+
+  for (const ring of rings) {
+    ring.userData._wTime += delta;
+    const t = Math.min(1, ring.userData._wTime / ring.userData._wDur);
+    const e = easeOutCubic(t);
+
+    ring.rotation.z = ring.userData._wStart + ring.userData._wTotal * e;
+
+    if (t < 1) done = false;
+  }
+
+  if (done) {
+    for (const ring of rings) ring.rotation.z = ring.userData._wStart;
+
+    isWrongRolling = false;
+
+    if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    triggerShake();
+    showToast("WRONG ✕ " + _wrongCode);
+  }
+}
+
+// ===== OPEN CAPS =====
+const OPEN_TIME = 1.05;
+const OPEN_DIST = 0.78;
+
+let isOpening = false;
+let openT = 0;
+
+let _leftZ0 = 0;
+let _rightZ0 = 0;
+
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function startOpenCaps() {
+  if (isOpening || isSolved) return;
+  isOpening = true;
+  openT = 0;
+
+  _leftZ0 = ends.leftGroup.position.z;
+  _rightZ0 = ends.rightGroup.position.z;
+}
+
+function updateOpenCaps(delta) {
+  if (!isOpening) return;
+
+  openT += delta;
+  const t = Math.min(1, openT / OPEN_TIME);
+  const e = easeOutBack(t);
+
+  ends.leftGroup.position.z = _leftZ0 - OPEN_DIST * e;
+  ends.rightGroup.position.z = _rightZ0 + OPEN_DIST * e;
+
+  if (t >= 1) {
+    ends.leftGroup.position.z = _leftZ0 - OPEN_DIST;
+    ends.rightGroup.position.z = _rightZ0 + OPEN_DIST;
+    isOpening = false;
+    isSolved = true;
+  }
+}
+
+function checkCode() {
+  if (isUnlocking || isOpening || isWrongRolling || isSolved) return;
+
+  const code = getCurrentCode();
+
+  if (code === TARGET_CODE) {
+    showToast("CHECKING… " + code);
+    startUnlockSpin(code);
+  } else {
+    startWrongRoll(code);
+  }
+}
   function updateWrongRoll(delta) {
     if (!isWrongRolling) return;
 
