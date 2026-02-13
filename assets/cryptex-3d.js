@@ -34,19 +34,17 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   cryptex.rotation.y = Math.PI / 2; // local Z -> world X
   scene.add(cryptex);
 
-  // ====== mūsu “izmēru patiesība” vienuviet ======
+  // ====== izmēri ======
   const BODY_RADIUS = 1.05;
 
   const SYMBOLS_PER_RING = 10;
   const STEP_ANGLE = (Math.PI * 2) / SYMBOLS_PER_RING;
 
-  // ring / plate dimensijas
   const RING_COUNT = 5;
   const RING_WIDTH = 0.8;
   const RING_RADIUS = 1.15;
   const RING_GAP = 0.12;
 
-  // BODY_LENGTH piesiets ringiem
   const RINGS_TOTAL = RING_COUNT * RING_WIDTH + (RING_COUNT - 1) * RING_GAP;
   const BODY_LENGTH = RINGS_TOTAL + 2 * RING_GAP;
 
@@ -54,13 +52,12 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   const PLATE_OUTER_R = RING_RADIUS + PLATE_H * 0.3 + PLATE_H / 2;
   const CAPS_OUTER_R = PLATE_OUTER_R + 0.1;
 
-  // bultu rinda
   const CHECK_ROW_Y = 0.68;
 
   // ====== centrs ======
   cryptex.add(createCryptexBodyLocalZ(BODY_LENGTH, BODY_RADIUS));
 
-  // ====== Dizaina gali (LATHE) ======
+  // ====== GALI ======
   const ends = createEndCapsLocalZ({
     bodyLength: BODY_LENGTH,
     outerRadius: CAPS_OUTER_R,
@@ -78,7 +75,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   });
   rings.forEach((r) => cryptex.add(r));
 
-  // ====== CODE READ (always matches what's between arrows) ======
+  // ====== CODE READ (arrow window) ======
   const _aw = new THREE.Vector3();
   const _local = new THREE.Vector3();
 
@@ -96,7 +93,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const a = Math.atan2(p.position.y, p.position.x);
 
       let d = a - targetAngle;
-      d = Math.atan2(Math.sin(d), Math.cos(d)); // normalize [-PI..PI]
+      d = Math.atan2(Math.sin(d), Math.cos(d));
 
       const score = Math.abs(d);
       if (score < bestScore) {
@@ -115,10 +112,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   let activeRing = 0;
   updateActiveRingVisual();
 
-  // ====== INPUT ======
+  // ====== STATE LOCKS ======
+  let isUnlocking = false;
+  let isOpening = false;
+  let isSolved = false; // kad atvērts -> viss beidzies
+
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
-    if (isUnlocking || isOpening || isOpened) return;
+    if (isUnlocking || isOpening || isSolved) return;
 
     if (e.key === "ArrowLeft") setActive(activeRing - 1);
     if (e.key === "ArrowRight") setActive(activeRing + 1);
@@ -138,7 +139,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       (e) => {
         const btn = e.target.closest("[data-action]");
         if (!btn) return;
-        if (isUnlocking || isOpening || isOpened) return;
+
+        if (isUnlocking || isOpening || isSolved) return;
 
         e.preventDefault();
 
@@ -178,8 +180,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       el.style.borderRadius = "10px";
       el.style.background = "rgba(20,20,20,0.85)";
       el.style.color = "#fff";
-      el.style.font =
-        "600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      el.style.font = "600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       el.style.letterSpacing = "0.08em";
       el.style.zIndex = "9999";
       el.style.pointerEvents = "none";
@@ -193,46 +194,28 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   const TARGET_CODE = "44444";
 
-  // ===== UNLOCK SPIN (always on CHECK) =====
-  let isUnlocking = false;
-
-  // “spēle beigusies” — pēc atvēršanas vairs nevar check/rotate
-  let isOpened = false;
-
-  // snapshot pirms check-spin, lai “nepareizā” gadījumā korekti atgrieztos
-  let pendingCheck = null; // { code: string, ringStarts: number[] }
+  // ===== UNLOCK SPIN =====
+  const TAU = Math.PI * 2;
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
 
-  const TAU = Math.PI * 2;
-
   function startUnlockSpin() {
-    if (isUnlocking || isOpening || isOpened) return;
-
-    // snapshot (stāvoklis, no kura sākās check)
-    pendingCheck = {
-      code: getCurrentCode(),
-      ringStarts: rings.map((r) => r.rotation.z),
-    };
-
+    if (isUnlocking || isOpening || isSolved) return;
     isUnlocking = true;
 
     rings.forEach((ring, i) => {
       const dir = i % 2 === 0 ? 1 : -1;
-
-      // pilnie apgriezieni (vari pamainīt)
-      const turns = 3 + i; // 3,4,5,6,7
-
+      const turns = 3 + i; // 3..7
       const start = ring.rotation.z;
 
-      // tikai pilni apgriezieni -> beigās atgriežas tieši turpat, kur bija
+      // tikai pilni apgriezieni -> beigas = sākums (tātad paliek 44444)
       const total = dir * turns * TAU;
 
       ring.userData._uStart = start;
       ring.userData._uTotal = total;
-      ring.userData._uDur = 2.4 + i * 0.15; // 2.4..3.0
+      ring.userData._uDur = 2.4 + i * 0.15;
       ring.userData._uTime = 0;
     });
   }
@@ -252,51 +235,23 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       if (t < 1) done = false;
     }
 
-    if (!done) return;
+    if (done) {
+      // garantējam precīzu starta pozīciju (bez floating kļūdām)
+      for (const ring of rings) ring.rotation.z = ring.userData._uStart;
 
-    // fiksējam precīzi uz starta (lai logs paliek precīzs)
-    rings.forEach((ring) => {
-      ring.rotation.z = ring.userData._uStart;
-    });
-
-    isUnlocking = false;
-
-    const codeWas = pendingCheck?.code ?? getCurrentCode();
-
-    if (codeWas === TARGET_CODE) {
+      isUnlocking = false;
       showToast("OPENING…");
       startOpenCaps();
-    } else {
-      // vizuāli paliek tas pats kods, no kura sāka check
-      if (pendingCheck?.ringStarts?.length === rings.length) {
-        rings.forEach((ring, i) => {
-          ring.rotation.z = pendingCheck.ringStarts[i];
-        });
-      }
-
-      showToast("WRONG ✕ " + codeWas);
-      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
-      triggerShake();
     }
-
-    pendingCheck = null;
   }
 
-  function checkCode() {
-    if (isOpened) return;
-    // “roll” vienmēr — gan pareizi, gan nepareizi
-    startUnlockSpin();
-  }
+  // ===== OPEN CAPS (veras abi gali kā GRUPAS) =====
+  const OPEN_TIME = 1.05;
+  const OPEN_DIST = 0.78;
 
-  // ===== OPEN CAPS (pēc OPENING) =====
-  const OPEN_TIME = 1.05; // cik ilgi veras gali (sek.)
-  const OPEN_DIST = 0.78; // cik tālu atveras (Z vienībās)
-
-  let isOpening = false;
   let openT = 0;
-
-  let _capL0 = 0;
-  let _capR0 = 0;
+  let _leftZ0 = 0;
+  let _rightZ0 = 0;
 
   function easeOutBack(t) {
     const c1 = 1.70158;
@@ -305,12 +260,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   function startOpenCaps() {
-    if (isOpening || isOpened) return;
+    if (isOpening || isSolved) return;
     isOpening = true;
     openT = 0;
 
-    _capL0 = ends.capL.position.z;
-    _capR0 = ends.capR.position.z;
+    // svarīgi: bīdām VISU galu grupu, nevis tikai capL/capR
+    _leftZ0 = ends.leftEnd.position.z;
+    _rightZ0 = ends.rightEnd.position.z;
   }
 
   function updateOpenCaps(delta) {
@@ -320,14 +276,30 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const t = Math.min(1, openT / OPEN_TIME);
     const e = easeOutBack(t);
 
-    ends.capL.position.z = _capL0 - OPEN_DIST * e;
-    ends.capR.position.z = _capR0 + OPEN_DIST * e;
+    ends.leftEnd.position.z = _leftZ0 - OPEN_DIST * e;
+    ends.rightEnd.position.z = _rightZ0 + OPEN_DIST * e;
 
     if (t >= 1) {
-      ends.capL.position.z = _capL0 - OPEN_DIST;
-      ends.capR.position.z = _capR0 + OPEN_DIST;
+      ends.leftEnd.position.z = _leftZ0 - OPEN_DIST;
+      ends.rightEnd.position.z = _rightZ0 + OPEN_DIST;
+
       isOpening = false;
-      isOpened = true; // <<< PĒC ŠĪ vairs nekādu check/rotate
+      isSolved = true; // ✅ pēc šī CHECK vairs nedarbojas
+    }
+  }
+
+  function checkCode() {
+    if (isUnlocking || isOpening || isSolved) return;
+
+    const code = getCurrentCode();
+
+    if (code === TARGET_CODE) {
+      showToast("UNLOCKED ✓ " + code);
+      startUnlockSpin();
+    } else {
+      showToast("WRONG ✕ " + code);
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      triggerShake();
     }
   }
 
@@ -360,7 +332,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   window.addEventListener("resize", resize);
   resize();
 
-  // ===== UPRIGHT stabils =====
+  // ===== UPRIGHT labels =====
   const _plateWorldQ = new THREE.Quaternion();
   const _invPlateWorldQ = new THREE.Quaternion();
   const _normalWorld = new THREE.Vector3();
@@ -388,9 +360,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
         _normalWorld.copy(nLocal).applyQuaternion(_plateWorldQ).normalize();
 
-        _upProj
-          .copy(_upWorld)
-          .addScaledVector(_normalWorld, -_upWorld.dot(_normalWorld));
+        _upProj.copy(_upWorld).addScaledVector(_normalWorld, -_upWorld.dot(_normalWorld));
 
         if (_upProj.lengthSq() < 1e-6) {
           const fw = _fallbackUp.clone().applyQuaternion(camera.quaternion);
@@ -398,7 +368,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         }
         if (_upProj.lengthSq() < 1e-6) {
           const fr = _fallbackRight.clone().applyQuaternion(camera.quaternion);
-          _upProj.copy(fr).addScaledVector(_normalWorld, -fwDot(_normalWorld, fr));
+          _upProj.copy(fr).addScaledVector(_normalWorld, -fr.dot(_normalWorld));
         }
 
         _upProj.normalize();
@@ -413,17 +383,13 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
         _qDesiredWorld.setFromRotationMatrix(_m);
 
         _qLocal.copy(_invPlateWorldQ).multiply(_qDesiredWorld);
+
         label.quaternion.copy(_qLocal);
       }
     }
   }
 
-  function fwDot(n, fr) {
-    // helper to avoid capturing "fw" variable out of scope (tiny safety)
-    return fr.dot(n);
-  }
-
-  // ===== TICK + SHAKE =====
+  // ===== SHAKE =====
   let _lastTime = performance.now();
 
   let shakeTime = 0;
@@ -566,13 +532,8 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       const a = s * step;
       const t = s / (symbols - 1);
 
-      const baseColor = new THREE.Color().setHSL(
-        0.095,
-        0.35 + 0.10 * t,
-        0.22 + 0.08 * t
-      );
-
-      if (s % 2 === 0) baseColor.setHSL(0.11, 0.55, 0.60);
+      const baseColor = new THREE.Color().setHSL(0.095, 0.35 + 0.1 * t, 0.22 + 0.08 * t);
+      if (s % 2 === 0) baseColor.setHSL(0.11, 0.55, 0.6);
 
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor.clone(),
@@ -608,10 +569,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
       });
 
       const labelPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(
-          Math.min(plateT * 0.86, 0.6),
-          Math.min(plateW * 0.72, 0.58)
-        ),
+        new THREE.PlaneGeometry(Math.min(plateT * 0.86, 0.6), Math.min(plateW * 0.72, 0.58)),
         labelMat
       );
 
@@ -685,7 +643,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
   }
 
   // ============================================================
-  //  END CAPS (LATHE)
+  //  END CAPS — atgriež leftEnd/rightEnd GRUPAS
   // ============================================================
   function createEndCapsLocalZ({ bodyLength, outerRadius, checkRowY }) {
     const group = new THREE.Group();
@@ -720,15 +678,24 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     capGeom.computeVertexNormals();
     applyCapBandVertexColors(capGeom);
 
+    // ---- katrs gals kā GRUPA ----
+    const leftEnd = new THREE.Group();
+    const rightEnd = new THREE.Group();
+    group.add(leftEnd, rightEnd);
+
+    // pozicionējam grupu “bāzes” punktu tur, kur bija cap sejas
+    leftEnd.position.z = leftFace - overlap;
+    rightEnd.position.z = rightFace + overlap;
+
+    // CAP (iekš grupas lokāli = 0)
     const capL = new THREE.Mesh(capGeom, goldMat);
-    capL.position.z = leftFace - overlap;
     capL.rotation.y = Math.PI;
-    group.add(capL);
+    leftEnd.add(capL);
 
     const capR = new THREE.Mesh(capGeom, goldMat);
-    capR.position.z = rightFace + overlap;
-    group.add(capR);
+    rightEnd.add(capR);
 
+    // collar (melnais) - lokāli pret grupu
     const collarLen = 0.18;
     const collarR = outerRadius * 1.04;
 
@@ -736,13 +703,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     collarGeom.rotateX(Math.PI / 2);
 
     const collarL = new THREE.Mesh(collarGeom, darkMat);
-    collarL.position.z = leftFace + collarLen / 2 - 0.06;
-    group.add(collarL);
+    collarL.position.z = overlap + collarLen / 2 - 0.06; // no leftFace -> uz iekšu
+    leftEnd.add(collarL);
 
     const collarRMesh = new THREE.Mesh(collarGeom, darkMat);
-    collarRMesh.position.z = rightFace - collarLen / 2 + 0.06;
-    group.add(collarRMesh);
+    collarRMesh.position.z = -(overlap + collarLen / 2 - 0.06); // no rightFace -> uz iekšu (negatīvs)
+    rightEnd.add(collarRMesh);
 
+    // inner disks
     const innerDiskGeom = new THREE.CylinderGeometry(
       outerRadius * 0.62,
       outerRadius * 0.62,
@@ -753,13 +721,14 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     innerDiskGeom.rotateX(Math.PI / 2);
 
     const innerL = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerL.position.z = leftFace - overlap - capLen - 0.02;
-    group.add(innerL);
+    innerL.position.z = -(capLen + 0.02); // aiz cap uz ārpusi
+    leftEnd.add(innerL);
 
     const innerR = new THREE.Mesh(innerDiskGeom, darkMat);
-    innerR.position.z = rightFace + overlap + capLen + 0.02;
-    group.add(innerR);
+    innerR.position.z = +(capLen + 0.02); // aiz cap uz ārpusi
+    rightEnd.add(innerR);
 
+    // accents
     const accents = [
       { tube: 0.030, color: 0xd1b36a, em: 0x3a2a12, ei: 0.65 },
       { tube: 0.024, color: 0x8f6e2a, em: 0x241a0b, ei: 0.55 },
@@ -781,18 +750,16 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     for (const a of accents) {
       const torusGeom = new THREE.TorusGeometry(collarR * 1.01, a.tube, 14, 96);
 
-      const mR = makeAccentMat(a.color, a.em, a.ei);
-      const ringR = new THREE.Mesh(torusGeom, mR);
-      ringR.position.set(0, 0, rightFace - collarLen / 2 + 0.06 + zOnCollar);
-      group.add(ringR);
+      const ringL = new THREE.Mesh(torusGeom, makeAccentMat(a.color, a.em, a.ei));
+      ringL.position.z = overlap + collarLen / 2 - 0.06 - zOnCollar;
+      leftEnd.add(ringL);
 
-      const mL = makeAccentMat(a.color, a.em, a.ei);
-      const ringL = new THREE.Mesh(torusGeom, mL);
-      ringL.position.set(0, 0, leftFace + collarLen / 2 - 0.06 - zOnCollar);
-      group.add(ringL);
+      const ringR = new THREE.Mesh(torusGeom, makeAccentMat(a.color, a.em, a.ei));
+      ringR.position.z = -(overlap + collarLen / 2 - 0.06 - zOnCollar);
+      rightEnd.add(ringR);
     }
 
-    // ===== bultas (sprites) =====
+    // arrows (sprites) - arī piesieti pie attiecīgā gala grupas
     const arrowTex = makeArrowTexture(THREE);
     const arrowMat = new THREE.SpriteMaterial({
       map: arrowTex,
@@ -804,35 +771,29 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     const ARROW_W = 0.55;
     const ARROW_H = 0.55;
 
-    const arrowZLeft = leftFace + collarLen / 2 - 0.06 - zOnCollar;
-    const arrowZRight = rightFace - collarLen / 2 + 0.06 + zOnCollar;
-
     const arrowL = new THREE.Sprite(arrowMat.clone());
     arrowL.material.rotation = 0;
     arrowL.scale.set(ARROW_W, ARROW_H, 1);
-    arrowL.position.set(-0.92, checkRowY, arrowZLeft);
-    group.add(arrowL);
+    arrowL.position.set(-0.92, checkRowY, overlap + collarLen / 2 - 0.06 - zOnCollar);
+    leftEnd.add(arrowL);
 
     const arrowR = new THREE.Sprite(arrowMat.clone());
     arrowR.material.rotation = Math.PI;
     arrowR.scale.set(ARROW_W, ARROW_H, 1);
-    arrowR.position.set(-0.92, checkRowY, arrowZRight);
-    group.add(arrowR);
+    arrowR.position.set(-0.92, checkRowY, -(overlap + collarLen / 2 - 0.06 - zOnCollar));
+    rightEnd.add(arrowR);
 
-    return { group, arrowL, arrowR, capL, capR };
+    return { group, leftEnd, rightEnd, arrowL, arrowR, capL, capR };
   }
 
   function buildCapLatheGeometry(outerRadius) {
     const pts = [
       new THREE.Vector2(outerRadius * 1.03, 0.0),
       new THREE.Vector2(outerRadius * 1.03, 0.08),
-
       new THREE.Vector2(outerRadius * 0.98, 0.14),
       new THREE.Vector2(outerRadius * 0.98, 0.22),
-
       new THREE.Vector2(outerRadius * 0.82, 0.34),
       new THREE.Vector2(outerRadius * 0.82, 0.48),
-
       new THREE.Vector2(outerRadius * 0.60, 0.62),
       new THREE.Vector2(outerRadius * 0.60, 0.78),
     ];
